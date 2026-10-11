@@ -1,0 +1,25 @@
+{
+  "name": "pokemon-catcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run lint && bun run test",
+    "build": "bun build --compile --outfile pokemon-catcher.exe src/main.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.7.3",
+    "chalk": "^6.0.1",
+    "pokenode-ts": "^4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/bun": "^1.4.3",
+    "typescript": "^7.0.2"
+  }
+}
