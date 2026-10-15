@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+import chalk from 'chalk';
 import { HP_DRAIN_STEPS, SPINNER_FRAMES } from '../src/constants.ts';
+import { ART, ART_WIDTH } from '../src/ui/art.ts';
 import {
+  artBlock,
   frames,
   hpBar,
   hpBarDrain,
@@ -48,6 +51,44 @@ describe('panel', () => {
     expect(lines.slice(2)).toEqual(['a', 'b']);
     expect(lines[0]?.includes('Tim Aktif')).toBe(true);
     expect(section('', ['a'])).toEqual(['a']);
+  });
+});
+
+describe('artBlock', () => {
+  test('setiap baris art tidak melebihi ART_WIDTH', () => {
+    for (const lines of Object.values(ART)) {
+      for (const line of lines) {
+        expect(line.length).toBeLessThanOrEqual(ART_WIDTH);
+      }
+    }
+  });
+
+  test('mengembalikan baris art untuk momen yang diminta', () => {
+    const lines = artBlock('win', '');
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.some((line) => line.includes('█'))).toBe(true);
+  });
+
+  test('caption menjadi heading pertama diikuti baris kosong', () => {
+    const lines = artBlock('caught', 'Judul');
+    expect(lines[0]?.includes('Judul')).toBe(true);
+    expect(lines[1]).toBe('');
+  });
+
+  test('caption kosong tidak menambah heading', () => {
+    const lines = artBlock('win', '');
+    expect(lines[0]?.trimStart().startsWith('▄')).toBe(true);
+  });
+
+  test('tiap momen memakai warnanya sendiri', () => {
+    const previous = chalk.level;
+    chalk.level = 3;
+    try {
+      expect(artBlock('lose', '').join('')).toContain('\u001b[31m');
+      expect(artBlock('rare-caught', '').join('')).toContain('\u001b[35m');
+    } finally {
+      chalk.level = previous;
+    }
   });
 });
 

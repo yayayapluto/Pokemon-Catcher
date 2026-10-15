@@ -80,7 +80,8 @@ pokemon-catcher/
 │   │   ├── damage.ts     # rumus damage + efektivitas type
 │   │   └── catch.ts      # rumus peluang tangkap dan kabur
 │   ├── ui/               # satu-satunya lapisan (bersama main.ts) yang mencetak ke terminal
-│   │   ├── theme.ts      # warna chalk, glyph tipe, panel, dan bar HP
+│   │   ├── theme.ts      # warna chalk, glyph tipe, panel, bar HP, dan art momen besar
+│   │   ├── art.ts        # data art ASCII (win, lose, caught, rare-caught)
 │   │   ├── frame.ts      # sesi layar dan gambar ulang penuh tiap frame
 │   │   ├── prompts.ts    # menu panah dan input teks berbasis readline
 │   │   └── screens/      # explore, party, pokedex, collection, stats
@@ -256,6 +257,7 @@ Semua function di `battle/` mengembalikan state baru (immutable) dan tidak mence
 ### `src/ui/`
 
 `theme.ts` menyediakan `typeBadge`, `displayName`, `hpBar`, `formatPokemonLine`, `title`, `section`, `panel`, `print`, `spinnerFrame`, `prefetchStatusLine`, serta `matchupLine`/`effectivenessBadge` untuk indikator efektivitas type. `section` menyisipkan baris kosong setelah heading supaya tiap bagian layar tidak berdesakan. `prompts.ts` menyediakan menu navigasi panah (`selectMenu`, `askText`, `askConfirm`, `pause`, `isExitPromptError`) yang dirender sendiri memakai `readline` dan mode raw stdin. Screens (`runExploreScreen`, `runPartyScreen`, `runCollectionScreen`, `runStatsScreen`, `runPokedexScreen`) hanya memanggil logika dan menampilkan hasil.
+`art.ts` menyimpan empat art ASCII (`win`, `lose`, `caught`, `rare-caught`) sebagai array literal; `artBlock` di `theme.ts` memusatkannya pada lebar tetap dan mewarnainya per momen. Art muncul sekali di akhir battle lalu hilang saat layar berikutnya digambar, dan tidak pernah menumpuk.
 `frame.ts` menyediakan `beginScreenSession`, `drawScreen`, dan `endScreenSession`: tiap screen membangun daftar baris lalu menggambar ulang seluruh layar lewat `drawScreen` (bersihkan layar + tulis seluruh frame), sehingga tampilan tidak menumpuk ke bawah seperti log. Kursor disembunyikan selama sesi dan dimunculkan lagi saat keluar, termasuk lewat Ctrl+C. Saat output bukan TTY (misalnya dipipe), pembersihan layar dilewati dan baris ditulis apa adanya.
 
 ---

@@ -13,6 +13,7 @@ import {
 } from '../constants.ts';
 import { getPrefetchProgress } from '../services/pokeapi.ts';
 import type { PokemonType, PokemonView } from '../types.ts';
+import { ART, ART_WIDTH, type ArtMoment } from './art.ts';
 
 const typeColors = {
   normal: chalk.hex(TYPE_COLORS.normal),
@@ -166,6 +167,22 @@ export function matchupLine(
   const colored =
     kind === 'strong' ? chalk.green(text) : kind === 'weak' ? chalk.yellow(text) : chalk.gray(text);
   return `    ${chalk.gray(`${label}:`)} ${effectivenessBadge(kind)} ${colored}`;
+}
+
+const ART_COLORS: Record<ArtMoment, ChalkInstance> = {
+  win: chalk.green,
+  lose: chalk.red,
+  caught: chalk.yellow,
+  'rare-caught': chalk.magenta,
+};
+
+export function artBlock(moment: ArtMoment, caption: string): string[] {
+  const color = ART_COLORS[moment];
+  const widest = Math.max(...ART[moment].map((line) => line.length));
+  const indent = ' '.repeat(Math.floor((ART_WIDTH - widest) / 2));
+  const art = ART[moment].map((line) => color(indent + line));
+  const head = caption === '' ? [] : [title(caption), ''];
+  return [...head, ...art, ''];
 }
 
 export function print(...args: unknown[]): void {

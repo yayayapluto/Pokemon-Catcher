@@ -61,6 +61,11 @@ export function isExitPromptError(error: unknown): boolean;
 - `spinnerFrame(tick: number): string`: satu karakter dari `SPINNER_FRAMES` (braille, aman di Windows Terminal), memakai modulo positif sehingga `tick` negatif pun valid.
 - `prefetchStatusLine(tick: number): string | null`: baris status prefetch (`⠋ memuat N/1025 spesies...`) atau `null` saat `getPrefetchProgress().done`. Ini satu-satunya tempat UI membaca progres prefetch; `theme.ts` boleh import `services/pokeapi.ts` karena `ui/` boleh import semua lapisan.
 - `matchupLine(label, attackerTypes, defenderTypes): string` dan `effectivenessBadge(kind: Effectiveness): string`: indikator efektivitas type (`Serangmu: ×2 sangat efektif`). `theme.ts` import `effectiveness`/`effectivenessOf` dari `battle/damage.ts`; UI tidak pernah menghitung ulang chart sendiri.
+- `artBlock(moment: ArtMoment, caption: string): string[]`: art ASCII satu-shot untuk momen besar, sudah dipusatkan pada `ART_WIDTH` dan diwarnai per momen. `caption` tidak kosong menjadi `title()` diikuti baris kosong, sama seperti `section`; `caption` kosong langsung menampilkan art. Array hasil selalu diakhiri baris kosong. **Tidak** memanggil `drawScreen` — screen yang memutuskan kapan menggambar, seperti `renderScoreboard`.
+
+## ui/art.ts
+
+Data art saja, tanpa logika: `ART: Record<ArtMoment, readonly string[]>` dan `ART_WIDTH`. Empat momen: `win` (hijau), `lose` (merah), `caught` (kuning), `rare-caught` (magenta). Ditulis sebagai array literal, bukan template string multi-baris, supaya tidak ada trailing space tak sengaja dan Biome tidak menyisipkan CRLF ke dalam gambar. Batas keras: setiap baris `<= ART_WIDTH` (44) kolom, dijaga test di `theme.test.ts`. Glyph blok/box-drawing (`█ ░ ▄ ▀ ─ │`), emoji hanya sebagai aksen (`✦ ✧`) dan tidak pernah dipad berdasarkan lebar visual.
 
 ## Screens
 
@@ -75,6 +80,6 @@ Masing-masing mengekspor satu fungsi `async` dengan return `Promise<void>`:
 - `stats.ts` → `runStatsScreen()`: tampilkan hasil `getTrainerStats()` dengan format rapi dan berwarna.
 - `pokedex.ts` → `runPokedexScreen()`: tampilkan hasil `getPokedex()`. Baris tertangkap memakai `✓` hijau, terlihat saja memakai `·` kuning, belum terlihat memakai `?` abu-abu. Judul diikuti ringkasan `Terlihat X/1025 · Tertangkap Z/1025` dari `getPokedexProgress()` (penyebut tetap `MAX_SPECIES_ID`, bukan jumlah baris), lalu `Entri dimuat: N/1025` plus status prefetch. Daftar dipotong `POKEDEX_PAGE_SIZE` (40) baris dengan ekor `... dan N entri lain` supaya terminal tidak dibanjiri 1025 baris.
 - Highlight keberhasilan: event `caught` dirender `chalk.bold.inverse.green` (latar penuh, bukan hanya teks hijau), dan pesan hasil akhir berwarna per outcome lewat `outcomeColor` (`caught` inverse hijau, `win` hijau, `lose` merah, `ran` abu-abu). Jangan bungkus ulang baris ini dengan `chalk` lain karena akan menimpa highlight-nya.
-
+- Art momen besar: di akhir battle, `artMomentFor(outcome, rareCatch)` memilih momen (`ran` mengembalikan `null` sehingga tidak ada art). `rareCatch` dihitung dengan `getAll().filter(e => e.speciesId === caughtSpeciesId).length === 1` — `catchPokemon` sudah menyisipkan entry sebelum event `caught` dibuat, jadi hitungan 1 berarti tangkapan pertama spesies itu. `caughtSpeciesId` diambil dari event `caught` mentah di `step.events`, bukan dari `log` yang sudah berisi string. Art digambar setelah panel `Hasil`, dipisah satu baris kosong, dan hilang saat layar berikutnya digambar.
 
 Pecah function panjang di screen menjadi helper kecil (render, handle aksi). Tidak ada function screen yang lebih dari sekitar 30 baris.

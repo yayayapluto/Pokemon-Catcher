@@ -83,6 +83,7 @@ Memakai `SpeciesSource` palsu yang hanya bisa menjangkau sebagian id:
 - `typeGlyphStrip` untuk daftar kosong dan berisi.
 - `panel` meng-indentasi isi dua spasi setelah heading dan baris kosong; heading kosong tidak menambah baris kosong.
 - `section` menyisipkan baris kosong setelah heading tanpa meng-indentasi body; heading kosong hanya mengembalikan body.
+- `artBlock`: setiap baris `ART` untuk keempat momen panjangnya `<= ART_WIDTH` (menjaga centering); baris art benar-benar dihasilkan; `caption` mengisi baris pertama diikuti baris kosong; `caption` kosong tidak menambah heading; warna per momen dengan `chalk.level = 3` (dikembalikan ke nilai sebelumnya di `finally`).
 - `frames` bertambah satu baris tiap potongan; daftar kosong menghasilkan `[]`.
 - `hpBarDrain` langkah pertama sama dengan bar awal, langkah terakhir sama dengan bar akhir.
 - `spinnerFrame` menggilir seluruh `SPINNER_FRAMES` lalu kembali ke frame pertama, dan tetap mengembalikan frame valid untuk `tick` negatif.

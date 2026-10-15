@@ -18,13 +18,23 @@ import {
   ANIMATION_HP_TICK_MS,
   HP_DRAIN_STEPS,
 } from '../../constants.ts';
-import { getParty, healAll } from '../../functions.ts';
+import { getAll, getParty, healAll } from '../../functions.ts';
 import { getRandomSpecies } from '../../services/pokeapi.ts';
 import { assertNever } from '../../utils/assert.ts';
 import { delay } from '../../utils/async.ts';
 import { drawScreen } from '../frame.ts';
 import { askConfirm, pause, selectMenu } from '../prompts.ts';
-import { displayName, hpBar, hpBarDrain, matchupLine, panel, title, typeBadge } from '../theme.ts';
+import type { ArtMoment } from '../art.ts';
+import {
+  artBlock,
+  displayName,
+  hpBar,
+  hpBarDrain,
+  matchupLine,
+  panel,
+  title,
+  typeBadge,
+} from '../theme.ts';
 
 type BattleAction = 'attack' | 'catch' | 'switch' | 'run';
 
@@ -228,6 +238,21 @@ function outcomeColor(outcome: Outcome, message: string): string {
   }
 }
 
+function artMomentFor(outcome: Outcome, rareCatch: boolean): ArtMoment | null {
+  switch (outcome) {
+    case 'win':
+      return 'win';
+    case 'lose':
+      return 'lose';
+    case 'caught':
+      return rareCatch ? 'rare-caught' : 'caught';
+    case 'ran':
+      return null;
+    default:
+      return assertNever(outcome);
+  }
+}
+
 async function offerHeal(): Promise<void> {
   if (await askConfirm('Pulihkan tim sekarang?')) {
     const healed = healAll();
@@ -249,6 +274,7 @@ export async function runExploreScreen(): Promise<void> {
   let state = created.data;
   let outcome: Outcome | null = null;
   const log: string[] = [];
+  let caughtSpeciesId: number | null = null;
   while (outcome === null) {
     if (needsSwitch(state)) {
       const resolved = await resolveForcedSwitch(state);
@@ -273,10 +299,18 @@ export async function runExploreScreen(): Promise<void> {
     } else {
       drawScreen([...board.lines, '', ...log, ...rendered, '']);
     }
+    const caught = step.events.find((event) => event.type === 'caught');
+    if (caught?.type === 'caught') caughtSpeciesId = caught.entry.speciesId;
     log.push(...rendered);
     state = step.state;
     outcome = step.outcome;
   }
+
+  const rareCatch =
+    caughtSpeciesId !== null &&
+    getAll().filter((entry) => entry.speciesId === caughtSpeciesId).length === 1;
+  const moment = artMomentFor(outcome, rareCatch);
+  const art = moment === null ? [] : artBlock(moment, '');
 
   drawScreen([
     ...renderScoreboard(state).lines,
@@ -284,6 +318,7 @@ export async function runExploreScreen(): Promise<void> {
     ...log,
     '',
     ...panel('Hasil', [chalk.bold(outcomeColor(outcome, outcomeMessage(outcome)))]),
+    ...(art.length > 0 ? ['', ...art] : []),
   ]);
   await pause();
 }
