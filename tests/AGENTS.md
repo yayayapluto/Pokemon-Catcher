@@ -67,6 +67,16 @@ Memakai `SpeciesSource` palsu lewat `options.source`:
 - `getPokedexProgress` memakai `MAX_SPECIES_ID` (1025) sebagai penyebut, bukan jumlah baris (regresi utama: dulu penyebut mengikuti jumlah entri sehingga tampil `n/12`).
 - `resetData` mengembalikan `speciesCatalog` ke `fallbackSpecies` dan membersihkan `seenSpecies`.
 
+## save.test.ts
+
+Test memindahkan `process.cwd()` ke direktori sementara (`mkdtempSync`) di `beforeAll` dan mengembalikannya di `afterAll`, jadi folder `saves/` asli tidak pernah tersentuh. Setiap test memanggil `resetData()` dan menghapus ketiga slot lewat `beforeEach`.
+
+- Round-trip: simpan koleksi + statistik trainer, `resetData()`, muat kembali, dan pastikan jumlah serta penghitung trainer kembali sama.
+- Slot terpisah tidak saling memengaruhi; memuat slot kosong mengembalikan `false` tanpa mengubah state.
+- Ditolak tanpa mengubah state: JSON rusak, `version` berbeda, field angka salah tipe, type di luar `POKEMON_TYPES`, field Pokémon hilang, dan `trainer` bukan objek.
+- `describeSlot` melaporkan `kosong`, `file rusak`, dan ringkasan slot berisi.
+- `deleteSlot` menghapus slot berisi dan mengembalikan `false` untuk slot kosong.
+
 
 ## prefetch.test.ts
 

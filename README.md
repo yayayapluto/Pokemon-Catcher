@@ -74,7 +74,8 @@ pokemon-catcher/
 │   │   ├── stats.ts      # statistik trainer
 │   │   └── pokedex.ts    # daftar spesies terlihat dan tertangkap
 │   ├── services/
-│   │   └── pokeapi.ts    # wrapper pokenode-ts + fallback offline
+│   │   ├── pokeapi.ts    # wrapper pokenode-ts + fallback offline
+│   │   └── save.ts       # tiga slot save JSON di folder saves/
 │   ├── battle/
 │   │   ├── engine.ts     # state battle dan aksi per giliran
 │   │   ├── damage.ts     # rumus damage + efektivitas type
@@ -109,7 +110,7 @@ Catatan: `data.ts`, `functions.ts`, dan `main.ts` adalah padanan TypeScript dari
 | `data.ts` | `constants.ts`, `types.ts` | lapisan lain |
 | `functions/*` | `data.ts`, `constants.ts`, `types.ts`, `utils/`, `functions/store.ts` | `ui/`, `battle/`, `services/`, `chalk`, `@inquirer/prompts`, sibling selain `store.ts` |
 | `battle/*` | `functions.ts`, `constants.ts`, `types.ts`, `utils/` | `ui/`, `services/`, `data.ts` langsung |
-| `services/*` | `data.ts`, `constants.ts`, `types.ts`, `utils/`, `pokenode-ts` | `ui/`, `battle/`, `functions/` |
+| `services/*` | `data.ts`, `constants.ts`, `types.ts`, `utils/`, `pokenode-ts`, `node:fs`, `node:path` | `ui/`, `battle/`, `functions/` |
 | `ui/*` | semua lapisan lain | memanggil `@inquirer/prompts` langsung dari `screens/*` |
 | `main.ts` | `ui/`, `functions.ts`, `data.ts` | logika game |
 
@@ -254,6 +255,21 @@ Semua function di `battle/` mengembalikan state baru (immutable) dan tidak mence
 | `isPokemonType` | `value: string` | `value is PokemonType` | Type guard terhadap 18 type resmi. |
 | `getRandomSpecies` | `options` | `Promise<Species>` | Ambil spesies acak; tidak pernah menolak, fallback saat gagal/timeout. |
 
+
+### `src/services/save.ts`
+
+Satu-satunya modul yang menyentuh disk. Memakai `node:fs` dan `node:path` (builtin Node, bukan dependency tambahan). Tiga slot disimpan sebagai `saves/slot-1.json`, `saves/slot-2.json`, `saves/slot-3.json`; folder `saves/` ada di `.gitignore`. Bentuk file: `{ "version": 1, "trainer": {...}, "pokemons": [...] }`.
+
+| Function | Parameter | Return | Perilaku |
+|---|---|---|---|
+| `describeSlot` | `slot: SlotId` | `SlotInfo` | Ringkasan slot untuk label pemilih: `kosong`, `file rusak`, atau `2 Pokémon · 1 di tim · tertinggi Lv5 · menang 0 · kalah 0`. Tidak melempar. |
+| `saveSlot` | `slot: SlotId` | `boolean` | Buat folder bila perlu, tulis payload JSON. `false` kalau penulisan gagal. |
+| `loadSlot` | `slot: SlotId` | `boolean` | Baca dan validasi file, lalu isi `pokemons`/`trainer`. `false` tanpa mengubah state kalau slot kosong atau file rusak. |
+| `deleteSlot` | `slot: SlotId` | `boolean` | Hapus file slot. `false` kalau memang tidak ada. |
+| `isCatalogLoaded` | — | `boolean` | Apakah `speciesCatalog` sudah terisi (dipakai status UI). |
+
+Semua data dari disk diperlakukan sebagai data tidak tepercaya: tiap field dicek tipe-nya sebelum menyentuh state, `version` harus sama dengan `SAVE_VERSION`, dan setiap entry `types` harus ada di `POKEMON_TYPES`. File versi lama, JSON rusak, atau field yang hilang ditolak tanpa menghapus koleksi yang sedang aktif.
+
 ### `src/ui/`
 
 `theme.ts` menyediakan `typeBadge`, `displayName`, `hpBar`, `formatPokemonLine`, `title`, `section`, `panel`, `print`, `spinnerFrame`, `prefetchStatusLine`, serta `matchupLine`/`effectivenessBadge` untuk indikator efektivitas type. `section` menyisipkan baris kosong setelah heading supaya tiap bagian layar tidak berdesakan. `prompts.ts` menyediakan menu navigasi panah (`selectMenu`, `askText`, `askConfirm`, `pause`, `isExitPromptError`) yang dirender sendiri memakai `readline` dan mode raw stdin. Screens (`runExploreScreen`, `runPartyScreen`, `runCollectionScreen`, `runStatsScreen`, `runPokedexScreen`) hanya memanggil logika dan menampilkan hasil.
@@ -335,7 +351,7 @@ Saat Pokémon dibuat: `stat = floor(base * (1 + level / 20))`, diterapkan ke HP 
 
 ### Asumsi yang diambil
 
-- Data hanya disimpan di memori dan direset setiap program dijalankan (tidak ada file atau database).
+- Data hanya ada di memori selama game berjalan, lalu ditulis ke `saves/slot-N.json` saat keluar (tidak ada database, tidak ada server).
 - Starter dipilih dari tiga Pokémon (`bulbasaur`, `charmander`, `squirtle`) dan langsung masuk party pada level 5.
 - Saat seluruh party pingsan, tim dipulihkan otomatis tanpa penalti lain, supaya pemain tidak terjebak.
 - `searchByName` dengan keyword kosong mengembalikan array kosong.
@@ -346,7 +362,7 @@ Saat Pokémon dibuat: `stat = floor(base * (1 + level / 20))`, diterapkan ke HP 
 
 - Saat start, `startSpeciesPrefetch()` (`src/services/pokeapi.ts`) memuat seluruh 1025 spesies ke `speciesCatalog` di latar belakang. Fungsi ini fire-and-forget dan tidak pernah di-`await` di `main.ts`, jadi menu starter tampil seketika. Worker pool dibatasi `PREFETCH_CONCURRENCY` (12) agar tidak kena rate limit; tiap id yang gagal mengembalikan `null` dan dilewati, tidak pernah menolak promise. Progresnya dibaca lewat `getPrefetchProgress()` dan ditampilkan sebagai status berputar di menu.
 - Sumber data spesies default adalah **PokeAPI** lewat `pokenode-ts`. Sebelum prefetch selesai, `getRandomSpecies()` mengambil acak dari `speciesCatalog` yang sudah terisi; jika katalog masih kosong, ia jatuh ke fetch acak lalu `fallbackSpecies`.
-- Data hanya ada di memori; menutup game berarti koleksi hilang.
+- Tiga slot save berdiri sendiri: memilih slot berisi akan memuat progresnya, memilih slot kosong memulai permainan baru. File rusak atau dari versi format lama dilaporkan sebagai `file rusak` dan bisa dilewati tanpa mengganggu slot lain.
 - `node_modules` tidak boleh ikut ke dalam zip pengumpulan; `bun.lock` ikut.
 - `pokemon-catcher.exe` (98 MB) adalah artefak build opsional, hanya untuk Windows. Hapus atau kecualikan file ini sebelum men-zip; `bun run build` tidak wajib dijalankan untuk pengumpulan.
 - Navigasi menu memakai tombol panah (↑↓) dan Enter, dijalankan oleh prompt buatan sendiri di `src/ui/prompts.ts` (raw stdin + `readline`). `@inquirer/prompts` tetap terdaftar sebagai dependency sesuai ketentuan tugas, tetapi tidak dipakai untuk merender menu karena baris pilihannya tidak bisa diberi indent.

@@ -275,3 +275,6 @@ export const TYPE_EFFECTIVE_SYMBOLS = {
 } as const;
 
 export const STARTER_SPECIES_IDS = [1, 4, 7] as const;
+
+export const SAVE_VERSION = 1;
+export const SAVE_DIR = 'saves';
