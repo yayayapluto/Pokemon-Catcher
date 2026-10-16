@@ -12,7 +12,7 @@ Konteks dipecah per modul supaya agent hanya memuat yang relevan. File ini beris
 | `src/AGENTS.md` | tipe domain, konstanta, skema data, `data.ts`, `main.ts`, `utils/` |
 | `src/functions/AGENTS.md` | spesifikasi function CRUD |
 | `src/battle/AGENTS.md` | engine, damage, peluang tangkap dan kabur |
-| `src/services/AGENTS.md` | integrasi PokeAPI dan fallback |
+| `src/services/AGENTS.md` | integrasi PokeAPI, fallback, dan penyimpanan slot save |
 | `src/ui/AGENTS.md` | TUI, tema, prompts, screens |
 | `tests/AGENTS.md` | aturan dan skenario test |
 
@@ -56,7 +56,7 @@ Format pengumpulan (harus didukung oleh hasil akhir):
   - `typescript`
   - `@types/bun`
   - `@biomejs/biome` (lint dan format)
-- Dilarang dependency lain, database, file persistence, atau web server. Penyimpanan hanya array di memori dan reset setiap program dijalankan.
+- Dilarang dependency lain, database, atau web server. Penyimpanan ke file hanya lewat `node:fs`/`node:path` (builtin Node, bukan dependency) di `src/services/save.ts`, untuk tiga slot save JSON di folder `saves/`. State game tetap array di memori; file hanya cerminan saat keluar dan saat pemain menekan Simpan.
 
 `package.json`:
 
@@ -145,7 +145,8 @@ pokemon-catcher/
 │   │   └── stats.ts        # getTrainerStats, recordBattleResult
 │   ├── services/
 │   │   ├── AGENTS.md
-│   │   └── pokeapi.ts      # wrapper pokenode-ts + fallback
+│   │   ├── pokeapi.ts      # wrapper pokenode-ts + fallback
+│   │   └── save.ts         # slot save JSON (baca/tulis file)
 │   ├── battle/
 │   │   ├── AGENTS.md
 │   │   ├── engine.ts       # state battle dan aksi per giliran
@@ -172,8 +173,8 @@ pokemon-catcher/
     ├── functions.test.ts
     ├── battle.test.ts
     ├── pokeapi.test.ts
+    ├── save.test.ts
     └── architecture.test.ts
-```
 
 ## 6. Aturan dependensi antar modul
 
@@ -187,7 +188,7 @@ Wajib supaya tidak ada circular import dan logika bisa dites tanpa UI. Aturan in
 | `data.ts` | `constants.ts`, `types.ts` | lapisan lain |
 | `functions/*` | `data.ts`, `constants.ts`, `types.ts`, `utils/`, `functions/store.ts` | `ui/`, `battle/`, `services/`, `chalk`, `@inquirer/prompts`, sibling selain `store.ts`, output terminal |
 | `battle/*` | `functions.ts`, `constants.ts`, `types.ts`, `utils/` | `ui/`, `services/`, `data.ts` langsung, output terminal |
-| `services/*` | `data.ts` (fallback), `constants.ts`, `types.ts`, `utils/`, `pokenode-ts` | `ui/`, `battle/`, `functions/`, output terminal |
+| `services/*` | `data.ts` (fallback), `constants.ts`, `types.ts`, `utils/`, `pokenode-ts`, `node:fs`, `node:path` | `ui/`, `battle/`, `functions/`, output terminal |
 | `ui/*` | semua lapisan lain | langsung memanggil `@inquirer/prompts` dari `ui/screens/*` (harus lewat `ui/prompts.ts`) |
 | `main.ts` | `ui/`, `functions.ts`, `data.ts` | logika game |
 
@@ -255,7 +256,7 @@ Harus berisi bagian-bagian berikut:
 5. **Penjelasan function**: tiap function dalam tabel atau list berisi nama, parameter, nilai return, dan perilakunya. Kelompokkan per file dan tandai mana yang Create, Read, Update, Delete.
 6. **Mekanik game**: ringkasan rumus damage, peluang tangkap, kabur, EXP, dan level up.
 7. **Keputusan teknis**: TypeScript strict, `Result` alih-alih exception, rng yang bisa disuntik, pemisahan logika dan UI, hasil kalibrasi konstanta damage jika diubah, serta asumsi yang diambil.
-8. **Catatan**: data hanya di memori dan reset tiap run, sumber data PokeAPI via pokenode-ts.
+8. **Catatan**: state game ada di memori dan dicerminkan ke slot save JSON saat keluar atau saat pemain menekan Simpan; sumber data PokeAPI via pokenode-ts. Sebutkan folder `saves/` ada di `.gitignore`.
 
 ## 10. Definition of done
 
@@ -268,6 +269,7 @@ Harus berisi bagian-bagian berikut:
 - [ ] Party maksimal 6, tangkapan ke-7 dan seterusnya masuk PC box, party tidak bisa dikosongkan.
 - [ ] Battle bisa Attack, Catch, Ganti Pokémon, Run, dengan hasil win, lose, caught, ran yang semuanya tertangani.
 - [ ] Game tetap bisa dimainkan saat offline (fallback aktif), dan Ctrl+C keluar dengan rapi.
+- [ ] Tiga slot save berfungsi: pemain memilih slot saat mulai, progres dimuat kalau slot berisi, tersimpan otomatis saat keluar dan lewat menu Simpan, bisa dihapus lewat menu Hapus data, dan file rusak ditolak tanpa mengubah state di memori.
 - [ ] Sort, search, filter type, dan statistik trainer berfungsi.
 - [ ] Tidak ada komentar dekoratif atau pembatas section di kode mana pun.
 - [ ] README lengkap sesuai bagian 9.
@@ -277,7 +279,7 @@ Harus berisi bagian-bagian berikut:
 
 - Jangan menambah dependency di luar yang diizinkan di bagian 4.
 - Jangan melonggarkan `tsconfig.json` atau aturan Biome untuk meloloskan error. Perbaiki kodenya.
-- Jangan membuat database, server HTTP, atau menyimpan data ke file.
+- Jangan membuat database atau server HTTP. Penyimpanan ke file diizinkan **hanya** di `src/services/save.ts` (slot save JSON); tidak ada modul lain yang boleh menulis atau membaca file.
 - Jangan reassign `pokemons`. Hanya mutasi in-place (`push`, `splice`, ubah properti).
 - Jangan mencetak ke terminal dari `functions/`, `battle/`, atau `services/`.
 - Jangan menyimpan Pokémon liar ke `pokemons` sebelum berhasil ditangkap.

@@ -76,3 +76,16 @@ Prefetch memuat seluruh National Dex ke `speciesCatalog` (di `data.ts`) di latar
 ## Testing
 
 Jalur normal, gagal, dan timeout dites dengan `SpeciesSource` palsu lewat `options.source`, tanpa jaringan. `mapToSpecies` dites dengan objek API buatan tangan, termasuk kasus type tidak dikenal dan stat hilang. Detail di `tests/AGENTS.md`.
+
+## save.ts: slot penyimpanan
+
+Satu-satunya modul yang menyentuh disk. Memakai `node:fs` dan `node:path` (builtin Node, bukan dependency).
+
+- Tiga slot (`SlotId = 1 | 2 | 3`) di `saves/slot-N.json`, folder dari `SAVE_DIR` di `constants.ts` (relatif, di-`.gitignore`).
+- Bentuk payload: `{ version, trainer, pokemons }`. `version` dibandingkan dengan `SAVE_VERSION`; file versi lain ditolak, bukan diparse setengah.
+- **Data dari disk adalah data tidak tepercaya.** Setiap field dicek manual dengan `typeof`, `Array.isArray`, dan `numberField` sebelum menyentuh `pokemons`. Type harus ada di `POKEMON_TYPES`. `parsePayload` mengembalikan `null` untuk data rusak, tidak pernah melempar.
+- `loadSlot` hanya menyentuh `pokemons`/`trainer` setelah payload dinyatakan valid, jadi file rusak tidak menghapus koleksi yang sedang aktif. `pokemons` dimutasi in-place (`length = 0` lalu `push`), tidak pernah di-reassign.
+- `describeSlot` dipakai UI untuk label slot: `kosong`, `file rusak`, atau ringkasan (`2 Pokémon · 1 di tim · tertinggi Lv5 · menang 0 · kalah 0`).
+- Boleh import `data.ts`, `constants.ts`, `types.ts`, `utils/`, `node:fs`, `node:path`. Tidak boleh import `ui/`, `battle/`, `functions/`, dan tidak mencetak apa pun.
+
+Function yang diekspor: `describeSlot`, `loadSlot`, `saveSlot`, `deleteSlot`, `isCatalogLoaded`, `SLOT_IDS`.
