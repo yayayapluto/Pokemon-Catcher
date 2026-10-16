@@ -38,6 +38,7 @@ export function pause(): Promise<void>;
 export function isExitPromptError(error: unknown): boolean;
 
 `options.status` mengembalikan baris status hidup (atau `null` untuk tidak menampilkan). `selectMenu` menjalankan satu `setInterval` yang menaikkan `tick` dan menggambar ulang **satu** blok berisi menu + baris status. Satu penulis untuk seluruh blok adalah syaratnya: kalau ada penulis kedua (mis. spinner terpisah), keduanya berebut kursor dan layar berkedip. Interval dibersihkan di `finally` supaya `ExitPromptError` maupun Enter tidak meninggalkan timer. Pemakai produksi: `main.ts` mengirim `prefetchStatusLine` dari `ui/theme.ts` agar progres prefetch terlihat berputar di bawah menu.
+`renderMenu` mewarnai `name` baris terpilih dengan cyan, **kecuali** `name` sudah mengandung escape ANSI (`\u001b[`). Penjaga ini ada supaya baris yang membawa warna sendiri (mis. badge type + badge matchup di menu pengganti Pokémon) tidak ditimpa cyan. `description` hanya ditampilkan untuk baris aktif.
 ```
 
 - `pause()` menunggu Enter.
@@ -68,6 +69,8 @@ export function isExitPromptError(error: unknown): boolean;
 Data art saja, tanpa logika: `ART: Record<ArtMoment, readonly string[]>` dan `ART_WIDTH`. Empat momen: `win` (hijau), `lose` (merah), `caught` (kuning), `rare-caught` (magenta). Ditulis sebagai array literal, bukan template string multi-baris, supaya tidak ada trailing space tak sengaja dan Biome tidak menyisipkan CRLF ke dalam gambar. Batas keras: setiap baris `<= ART_WIDTH` (44) kolom, dijaga test di `theme.test.ts`. Glyph blok/box-drawing (`█ ░ ▄ ▀ ─ │`), emoji hanya sebagai aksen (`✦ ✧`) dan tidak pernah dipad berdasarkan lebar visual.
 
 ## Screens
+
+- Menu pengganti (`chooseReplacement(state)`): tiap baris menampilkan nama, level, badge type berwarna, dan badge matchup terhadap Pokémon liar (`×2` / `×½` / `×1` / `×0`). Matchup dihitung di UI dengan `effectiveness`/`effectivenessOf` dari `battle/damage.ts` lalu `effectivenessBadge` — bukan tabel baru. Karena `name` sudah berisi ANSI, `renderMenu` tidak menimpanya dengan cyan (lihat `ui/prompts.ts`). Helper `replacementName(entry, wildTypes)` memisahkan penyusunan baris dari pemanggilan menu.
 
 Masing-masing mengekspor satu fungsi `async` dengan return `Promise<void>`:
 

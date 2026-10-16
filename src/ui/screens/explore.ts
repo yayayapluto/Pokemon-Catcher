@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { effectiveness, effectivenessOf } from '../../battle/damage.ts';
 import {
   createBattle,
   needsSwitch,
@@ -21,6 +22,7 @@ import {
 import { getAll, getParty, healAll } from '../../functions.ts';
 import { getRandomSpecies } from '../../services/pokeapi.ts';
 import { assertNever } from '../../utils/assert.ts';
+import type { PokemonType, PokemonView } from '../../types.ts';
 import { delay } from '../../utils/async.ts';
 import { drawScreen } from '../frame.ts';
 import { askConfirm, pause, selectMenu } from '../prompts.ts';
@@ -28,6 +30,7 @@ import type { ArtMoment } from '../art.ts';
 import {
   artBlock,
   displayName,
+  effectivenessBadge,
   hpBar,
   hpBarDrain,
   matchupLine,
@@ -157,10 +160,16 @@ async function promptAction(): Promise<BattleAction> {
   ]);
 }
 
-async function chooseReplacement(excludeId: number): Promise<number | null> {
+function replacementName(entry: PokemonView, wildTypes: readonly PokemonType[]): string {
+  const matchup = effectivenessBadge(effectivenessOf(effectiveness(entry.types, wildTypes)));
+  const types = entry.types.map(typeBadge).join(' ');
+  return `${displayName(entry)} ${chalk.gray(`Lv${entry.level}`)} ${types} ${matchup}`;
+}
+
+async function chooseReplacement(state: BattleState): Promise<number | null> {
   const options = getParty()
-    .filter((entry) => entry.hp > 0 && entry.id !== excludeId)
-    .map((entry) => ({ value: String(entry.id), name: `${displayName(entry)} Lv${entry.level}` }));
+    .filter((entry) => entry.hp > 0 && entry.id !== state.activeId)
+    .map((entry) => ({ value: String(entry.id), name: replacementName(entry, state.wild.types) }));
   if (options.length === 0) return null;
   return Number(await selectMenu('Pilih Pokémon:', options));
 }
@@ -173,7 +182,7 @@ async function resolveForcedSwitch(
     '',
     chalk.bold.red('Pokémon aktif pingsan. Pilih pengganti.'),
   ]);
-  const id = await chooseReplacement(state.activeId);
+  const id = await chooseReplacement(state);
   if (id === null) return { state, events: [] };
   const result = switchActive(state, id, { forced: true });
   if (!result.ok) {
@@ -186,7 +195,7 @@ async function resolveForcedSwitch(
 
 async function resolveVoluntarySwitch(state: BattleState): Promise<BattleStep> {
   drawScreen([...renderScoreboard(state).lines, '', chalk.gray('Pilih pengganti.')]);
-  const id = await chooseReplacement(state.activeId);
+  const id = await chooseReplacement(state);
   if (id === null) {
     drawScreen([...renderScoreboard(state).lines, '', chalk.gray('Tidak ada pengganti lain.')]);
     await pause();

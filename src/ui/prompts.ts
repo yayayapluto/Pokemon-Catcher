@@ -80,7 +80,8 @@ export function renderMenu(
     const choice = choices[i];
     if (!choice) continue;
     const cursor = i === index ? chalk.cyan(CURSOR) : IDLE;
-    const label = i === index ? chalk.cyan(choice.name) : choice.name;
+    const hasColor = choice.name.includes('\u001b[');
+    const label = i === index && !hasColor ? chalk.cyan(choice.name) : choice.name;
     lines.push(`${cursor} ${label}`);
   }
   const active = choices[index];
