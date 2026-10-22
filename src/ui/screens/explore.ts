@@ -22,7 +22,7 @@ import {
 import { getAll, getParty, healAll } from '../../functions.ts';
 import { getRandomSpecies } from '../../services/pokeapi.ts';
 import { assertNever } from '../../utils/assert.ts';
-import type { PokemonType, PokemonView } from '../../types.ts';
+import type { PokemonType, Pokemon } from '../../types.ts';
 import { delay } from '../../utils/async.ts';
 import { drawScreen } from '../frame.ts';
 import { askConfirm, pause, selectMenu } from '../prompts.ts';
@@ -66,7 +66,7 @@ function renderEvent(event: BattleEvent): string {
   }
 }
 
-function renderEventList(events: readonly BattleEvent[]): string[] {
+function renderEventList(events: BattleEvent[]): string[] {
   return events.map(renderEvent);
 }
 
@@ -85,8 +85,8 @@ function renderCombatant(
 }
 
 interface Scoreboard {
-  readonly lines: string[];
-  readonly wildBarIndex: number;
+  lines: string[];
+  wildBarIndex: number;
 }
 
 function renderScoreboard(state: BattleState): Scoreboard {
@@ -124,7 +124,7 @@ function renderScoreboard(state: BattleState): Scoreboard {
   return { lines, wildBarIndex: lines.length - 1 - (active ? 2 : 0) };
 }
 
-async function revealLines(base: readonly string[], revealed: readonly string[]): Promise<void> {
+async function revealLines(base: string[], revealed: string[]): Promise<void> {
   if (!ANIMATION_ENABLED) return;
   for (let count = 1; count <= revealed.length; count += 1) {
     drawScreen([...base, ...revealed.slice(0, count), '']);
@@ -133,7 +133,7 @@ async function revealLines(base: readonly string[], revealed: readonly string[])
 }
 
 async function revealHpDrain(
-  base: readonly string[],
+  base: string[],
   barIndex: number,
   from: number,
   to: number,
@@ -160,7 +160,7 @@ async function promptAction(): Promise<BattleAction> {
   ]);
 }
 
-function replacementName(entry: PokemonView, wildTypes: readonly PokemonType[]): string {
+function replacementName(entry: Pokemon, wildTypes: PokemonType[]): string {
   const matchup = effectivenessBadge(effectivenessOf(effectiveness(entry.types, wildTypes)));
   const types = entry.types.map(typeBadge).join(' ');
   return `${displayName(entry)} ${chalk.gray(`Lv${entry.level}`)} ${types} ${matchup}`;

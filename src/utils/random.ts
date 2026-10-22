@@ -4,7 +4,7 @@ export function randomInt(min: number, max: number, rng: Rng = Math.random): num
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-export function randomChoice<T>(items: readonly T[], rng: Rng = Math.random): T {
+export function randomChoice<T>(items: T[], rng: Rng = Math.random): T {
   if (items.length === 0) {
     throw new RangeError('randomChoice menerima array kosong');
   }

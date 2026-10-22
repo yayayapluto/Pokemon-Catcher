@@ -34,9 +34,7 @@ type MainMenu =
   | 'exit';
 
 function starters(): Species[] {
-  return fallbackSpecies.filter((entry) =>
-    (STARTER_SPECIES_IDS as readonly number[]).includes(entry.speciesId),
-  );
+  return fallbackSpecies.filter((entry) => STARTER_SPECIES_IDS.includes(entry.speciesId));
 }
 
 function bootBackgroundPrefetch(): void {

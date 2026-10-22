@@ -1,4 +1,7 @@
-export const POKEMON_TYPES = [
+import type { PokemonType } from './types.ts';
+
+// Urutan tampilan 18 tipe di menu.
+export const POKEMON_TYPES: PokemonType[] = [
   'normal',
   'fire',
   'water',
@@ -17,25 +20,20 @@ export const POKEMON_TYPES = [
   'dark',
   'steel',
   'fairy',
-] as const;
+];
 
-export const SORT_KEYS = ['level', 'name', 'hp', 'attack', 'defense', 'speed'] as const;
-
-export const STAT_NAMES = ['hp', 'attack', 'defense', 'speed'] as const;
+export const SPINNER_FRAMES: string[] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+export const SPINNER_INTERVAL_MS = 100;
 
 export const MAX_PARTY_SIZE = 6;
 export const MIN_LEVEL = 1;
 export const MAX_LEVEL = 100;
 export const STARTING_LEVEL = 5;
 export const MAX_NICKNAME_LENGTH = 12;
-
 export const MAX_SPECIES_ID = 1025;
 export const API_TIMEOUT_MS = 5000;
 export const PREFETCH_CONCURRENCY = 12;
 export const POKEDEX_PAGE_SIZE = 40;
-
-export const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'] as const;
-export const SPINNER_INTERVAL_MS = 100;
 
 export const STAT_SCALE_DIVISOR = 20;
 export const EXP_PER_LEVEL = 20;
@@ -79,7 +77,7 @@ export const ANIMATION_EVENT_DELAY_MS = 180;
 export const ANIMATION_HP_TICK_MS = 60;
 export const HP_DRAIN_STEPS = 4;
 
-export const TYPE_COLORS = {
+export const TYPE_COLORS: Record<PokemonType, string> = {
   normal: '#A8A77A',
   fire: '#EE8130',
   water: '#6390F0',
@@ -98,13 +96,13 @@ export const TYPE_COLORS = {
   dark: '#705746',
   steel: '#B7B7CE',
   fairy: '#D685AD',
-} as const satisfies Record<(typeof POKEMON_TYPES)[number], string>;
+};
 
 const CHART_IMMUNE = 0;
 const CHART_NOT_VERY = 0.5;
 const CHART_SUPER = 2;
 
-const TYPE_CHART_ROWS = {
+const TYPE_CHART_ROWS: Record<PokemonType, Partial<Record<PokemonType, number>>> = {
   normal: { rock: CHART_NOT_VERY, ghost: CHART_IMMUNE, steel: CHART_NOT_VERY },
   fire: {
     fire: CHART_NOT_VERY,
@@ -245,19 +243,12 @@ const TYPE_CHART_ROWS = {
     fighting: CHART_SUPER,
     poison: CHART_NOT_VERY,
     dragon: CHART_SUPER,
-    dark: CHART_SUPER,
-    steel: CHART_NOT_VERY,
   },
-} as const satisfies Record<
-  (typeof POKEMON_TYPES)[number],
-  Partial<Record<(typeof POKEMON_TYPES)[number], number>>
->;
-
-type PokemonTypeName = (typeof POKEMON_TYPES)[number];
+};
 
 export const TYPE_CHART: Record<
-  PokemonTypeName,
-  Partial<Record<PokemonTypeName, number>>
+  PokemonType,
+  Partial<Record<PokemonType, number>>
 > = TYPE_CHART_ROWS;
 
 export const TYPE_EFFECTIVE_LABELS = {
@@ -274,7 +265,7 @@ export const TYPE_EFFECTIVE_SYMBOLS = {
   strong: '×2',
 } as const;
 
-export const STARTER_SPECIES_IDS = [1, 4, 7] as const;
+export const STARTER_SPECIES_IDS: number[] = [1, 4, 7];
 
 export const SAVE_VERSION = 1;
 export const SAVE_DIR = 'saves';

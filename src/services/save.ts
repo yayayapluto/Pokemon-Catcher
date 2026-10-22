@@ -7,33 +7,30 @@ import { asRecord } from '../utils/assert.ts';
 
 export type SlotId = 1 | 2 | 3;
 
-export const SLOT_IDS: readonly SlotId[] = [1, 2, 3];
+export const SLOT_IDS: SlotId[] = [1, 2, 3];
 
 export interface SlotInfo {
-  readonly slot: SlotId;
-  readonly exists: boolean;
-  readonly summary: string;
+  slot: SlotId;
+  exists: boolean;
+  summary: string;
 }
 
 interface SavePayload {
-  readonly version: number;
-  readonly trainer: Trainer;
-  readonly pokemons: Pokemon[];
+  version: number;
+  trainer: Trainer;
+  pokemons: Pokemon[];
 }
 
 function savePath(slot: SlotId): string {
   return join(SAVE_DIR, `slot-${slot}.json`);
 }
 
-function parseTypes(value: unknown): readonly PokemonType[] | null {
+function parseTypes(value: unknown): PokemonType[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
-  const types: PokemonType[] = [];
   for (const entry of value) {
-    if (typeof entry !== 'string') return null;
-    if (!(POKEMON_TYPES as readonly string[]).includes(entry)) return null;
-    types.push(entry as PokemonType);
+    if (!POKEMON_TYPES.includes(entry as PokemonType)) return null;
   }
-  return types;
+  return value as PokemonType[];
 }
 
 function numberField(fields: Record<string, unknown>, key: string): number | null {
@@ -45,9 +42,10 @@ function parsePokemon(value: unknown): Pokemon | null {
   const fields = asRecord(value);
   if (fields === null) return null;
   const types = parseTypes(fields.types);
-  if (types === null || typeof fields.name !== 'string') return null;
-  if (typeof fields.inParty !== 'boolean') return null;
-  if (fields.nickname !== null && typeof fields.nickname !== 'string') return null;
+  const { name, nickname, inParty } = fields;
+  if (types === null || typeof name !== 'string') return null;
+  if (typeof inParty !== 'boolean') return null;
+  if (nickname !== null && typeof nickname !== 'string') return null;
   const id = numberField(fields, 'id');
   const speciesId = numberField(fields, 'speciesId');
   const level = numberField(fields, 'level');
@@ -73,8 +71,8 @@ function parsePokemon(value: unknown): Pokemon | null {
   return {
     id,
     speciesId,
-    name: fields.name,
-    nickname: fields.nickname,
+    name,
+    nickname,
     level,
     exp,
     types,
@@ -83,7 +81,7 @@ function parsePokemon(value: unknown): Pokemon | null {
     attack,
     defense,
     speed,
-    inParty: fields.inParty,
+    inParty,
   };
 }
 
@@ -91,22 +89,20 @@ function parseSeenSpecies(value: unknown): SeenSpecies | null {
   const fields = asRecord(value);
   if (fields === null) return null;
   const types = parseTypes(fields.types);
-  if (types === null) return null;
   const speciesId = numberField(fields, 'speciesId');
-  if (speciesId === null || typeof fields.name !== 'string') return null;
+  if (types === null || speciesId === null || typeof fields.name !== 'string') return null;
   return { speciesId, name: fields.name, types };
 }
 
 function parseTrainer(value: unknown): Trainer | null {
   const fields = asRecord(value);
   if (fields === null) return null;
-  if (typeof fields.name !== 'string') return null;
   const nextId = numberField(fields, 'nextId');
   const totalCaught = numberField(fields, 'totalCaught');
   const wins = numberField(fields, 'wins');
   const losses = numberField(fields, 'losses');
+  if (typeof fields.name !== 'string' || !Array.isArray(fields.seenSpecies)) return null;
   if (nextId === null || totalCaught === null || wins === null || losses === null) return null;
-  if (!Array.isArray(fields.seenSpecies)) return null;
   const seenSpecies: SeenSpecies[] = [];
   for (const entry of fields.seenSpecies) {
     const parsed = parseSeenSpecies(entry);
@@ -124,9 +120,11 @@ function parsePayload(text: string): SavePayload | null {
     return null;
   }
   const fields = asRecord(raw);
-  if (fields === null || fields.version !== SAVE_VERSION) return null;
+  if (fields === null || fields.version !== SAVE_VERSION || !Array.isArray(fields.pokemons)) {
+    return null;
+  }
   const parsedTrainer = parseTrainer(fields.trainer);
-  if (parsedTrainer === null || !Array.isArray(fields.pokemons)) return null;
+  if (parsedTrainer === null) return null;
   const parsedPokemons: Pokemon[] = [];
   for (const entry of fields.pokemons) {
     const parsed = parsePokemon(entry);

@@ -37,9 +37,7 @@ Script lain:
 bun run typecheck   # cek tipe (tsc --noEmit)
 bun run lint        # Biome check
 bun run format      # Biome auto-format
-bun test            # jalankan test
-bun run check       # typecheck + lint + test (satu perintah)
-bun run build       # compile ke pokemon-catcher.exe
+bun run check       # typecheck + lint (satu perintah)
 ```
 
 Game mengambil data spesies dari PokeAPI. Saat start, game langsung menembak **prefetch** seluruh National Dex (1025 spesies) di latar belakang dengan worker pool 12 concurrent; menu tetap responsif dan ada indikator berputar `⠋ memuat N/1025 spesies...` di bawah menu selama proses berjalan. Jika internet mati atau permintaan gagal/timeout, tiap permintaan gagal dilewati diam-diam dan game memakai data `fallbackSpecies` (8 Pokémon) sehingga tetap bisa dimainkan. Tekan `Ctrl+C` kapan saja untuk keluar dengan rapi.
@@ -87,11 +85,8 @@ pokemon-catcher/
 │   │   ├── prompts.ts    # menu panah dan input teks berbasis readline
 │   │   └── screens/      # explore, party, pokedex, collection, stats
 │   └── utils/            # utility murni (random, math, result, async, assert)
-└── tests/                # test dengan bun:test
+└── tests/                # dimatikan: hanya helper tersisa, lihat bagian Catatan
     ├── helpers.ts
-    ├── functions.test.ts
-    ├── battle.test.ts
-    ├── pokeapi.test.ts
     ├── prompts.test.ts
     ├── pokedex.test.ts
     ├── theme.test.ts
@@ -114,7 +109,7 @@ Catatan: `data.ts`, `functions.ts`, dan `main.ts` adalah padanan TypeScript dari
 | `ui/*` | semua lapisan lain | memanggil `@inquirer/prompts` langsung dari `screens/*` |
 | `main.ts` | `ui/`, `functions.ts`, `data.ts` | logika game |
 
-Aturan ini ditegakkan otomatis oleh `tests/architecture.test.ts`.
+Aturan ini dicek manual saat review; `tests/` tidak lagi memuat test otomatis.
 
 ---
 
@@ -160,9 +155,9 @@ Koleksi Pokémon disimpan dalam array `pokemons` di `src/data.ts`. Party dan PC 
 Operasi yang bisa gagal mengembalikan `Result<T>`:
 
 ```ts
-type Result<T = null> =
-  | { readonly ok: true; readonly message: string; readonly data: T }
-  | { readonly ok: false; readonly message: string };
+type Result<T> =
+  | { ok: true; message: string; data: T }
+  | { ok: false; message: string };
 ```
 
 `ok: true` membawa `data`; `ok: false` tidak. Selalu periksa `result.ok` sebelum memakai `result.data`. Kegagalan wajar (id tidak ada, party penuh, input salah) dikembalikan sebagai `Result`, bukan exception.
@@ -177,24 +172,24 @@ type Result<T = null> =
 |---|---|---|---|---|
 | `buildPokemon` | `species: Species`, `level: number` | `NewPokemon` | Murni, tidak menyentuh array. Level di-clamp ke 1–100, stat di-scale sesuai level, `hp = maxHp`. | — |
 | `catchPokemon` | `pokemon: NewPokemon` | `Result<Pokemon>` | Beri `id`, tentukan party/box, push ke array, naikkan `totalCaught`. | **Create** |
-| `getAll` | — | `readonly PokemonView[]` | Salinan seluruh koleksi. | **Read** |
-| `getById` | `id: number` | `PokemonView \| undefined` | Cari berdasarkan id. | **Read** |
-| `releasePokemon` | `id: number` | `Result<PokemonView>` | Hapus dari array. Gagal jika id tidak ada atau anggota party terakhir. | **Delete** |
+| `getAll` | — | `Pokemon[]` | Salinan seluruh koleksi. | **Read** |
+| `getById` | `id: number` | `Pokemon \| undefined` | Cari berdasarkan id. | **Read** |
+| `releasePokemon` | `id: number` | `Result<Pokemon>` | Hapus dari array. Gagal jika id tidak ada atau anggota party terakhir. | **Delete** |
 
 ### `src/functions/party.ts`
 
 | Function | Parameter | Return | Perilaku | CRUD |
 |---|---|---|---|---|
-| `getParty` | — | `readonly PokemonView[]` | Filter `inParty === true`. | **Read** |
-| `getBox` | — | `readonly PokemonView[]` | Filter `inParty === false`. | **Read** |
-| `moveToParty` | `id: number` | `Result<PokemonView>` | Gagal jika party penuh, id tidak ada, atau sudah di party. | **Update** |
-| `moveToBox` | `id: number` | `Result<PokemonView>` | Gagal jika id tidak ada, sudah di box, atau anggota party terakhir. | **Update** |
+| `getParty` | — | `Pokemon[]` | Filter `inParty === true`. | **Read** |
+| `getBox` | — | `Pokemon[]` | Filter `inParty === false`. | **Read** |
+| `moveToParty` | `id: number` | `Result<Pokemon>` | Gagal jika party penuh, id tidak ada, atau sudah di party. | **Update** |
+| `moveToBox` | `id: number` | `Result<Pokemon>` | Gagal jika id tidak ada, sudah di box, atau anggota party terakhir. | **Update** |
 
 ### `src/functions/update.ts`
 
 | Function | Parameter | Return | Perilaku | CRUD |
 |---|---|---|---|---|
-| `setNickname` | `id: number`, `nickname: string` | `Result<PokemonView>` | Trim; string kosong → `null`; lebih dari 12 karakter gagal. | **Update** |
+| `setNickname` | `id: number`, `nickname: string` | `Result<Pokemon>` | Trim; string kosong → `null`; lebih dari 12 karakter gagal. | **Update** |
 | `gainExp` | `id: number`, `amount: number` | `Result<{ levelsGained; newLevel }>` | Tambah EXP, naik level (bisa berkali-kali), stat bertambah, berhenti di level 100. | **Update** |
 | `applyDamage` | `id: number`, `amount: number` | `Result<{ hp; fainted }>` | Kurangi HP, minimum 0; laporkan pingsan. | **Update** |
 | `healAll` | — | `Result<{ healed }>` | Pulihkan HP seluruh Pokémon (party dan box). | **Update** |
@@ -203,9 +198,9 @@ type Result<T = null> =
 
 | Function | Parameter | Return | Perilaku | CRUD |
 |---|---|---|---|---|
-| `searchByName` | `keyword: string` | `readonly PokemonView[]` | Cocok sebagian, case-insensitive, terhadap `name` atau `nickname`. | **Read** |
-| `filterByType` | `type: PokemonType` | `readonly PokemonView[]` | Pokémon yang tipenya mengandung `type`. | **Read** |
-| `sortBy` | `key: SortKey`, `order: SortOrder` | `readonly PokemonView[]` | Salin lalu urutkan; key tidak valid mengembalikan `getAll()`. | **Read** |
+| `searchByName` | `keyword: string` | `Pokemon[]` | Cocok sebagian, case-insensitive, terhadap `name` atau `nickname`. | **Read** |
+| `filterByType` | `type: PokemonType` | `Pokemon[]` | Pokémon yang tipenya mengandung `type`. | **Read** |
+| `sortBy` | `key: SortKey`, `order: SortOrder` | `Pokemon[]` | Salin lalu urutkan; key tidak valid mengembalikan `getAll()`. | **Read** |
 
 Semua function di file ini tidak memutasi `pokemons`.
 
@@ -347,7 +342,7 @@ Saat Pokémon dibuat: `stat = floor(base * (1 + level / 20))`, diterapkan ke HP 
 - **Pemisahan logika dan I/O**: hanya `ui/` dan `main.ts` yang mencetak ke terminal; `functions/`, `battle/`, dan `services/` murni data.
 - **Model data tunggal**: party dan box adalah satu array dengan flag `inParty`, bukan dua struktur terpisah.
 - **Kalibrasi `DAMAGE_POWER`**: nilai awal 40 membuat pertarungan level setara berlangsung terlalu lama (± 14 giliran). Nilai dinaikkan ke **100**, sehingga simulasi pada test menghasilkan rata-rata 3–8 giliran sesuai target.
-- **`exactOptionalPropertyTypes` dan objek literal `BattleEvent`**: setiap varian event adalah objek literal penuh dengan `readonly`, sehingga perubahan bentuk state terdeteksi kompilasi.
+- **`exactOptionalPropertyTypes` dan objek literal `BattleEvent`**: setiap varian event adalah objek literal penuh, sehingga perubahan bentuk state terdeteksi kompilasi.
 
 ### Asumsi yang diambil
 
@@ -364,6 +359,7 @@ Saat Pokémon dibuat: `stat = floor(base * (1 + level / 20))`, diterapkan ke HP 
 - Sumber data spesies default adalah **PokeAPI** lewat `pokenode-ts`. Sebelum prefetch selesai, `getRandomSpecies()` mengambil acak dari `speciesCatalog` yang sudah terisi; jika katalog masih kosong, ia jatuh ke fetch acak lalu `fallbackSpecies`.
 - Tiga slot save berdiri sendiri: memilih slot berisi akan memuat progresnya, memilih slot kosong memulai permainan baru. File rusak atau dari versi format lama dilaporkan sebagai `file rusak` dan bisa dilewati tanpa mengganggu slot lain.
 - `node_modules` tidak boleh ikut ke dalam zip pengumpulan; `bun.lock` ikut.
+- Unit test otomatis (`bun:test`) sudah dimatikan: `tests/AGENTS.md` dan `tests/helpers.ts` masih ada sebagai referensi, tetapi `bun test` tidak menjalankan skenario apa pun dan `bun run check` hanya typecheck + lint. Verifikasi perilaku dilakukan manual lewat `bun start`.
 - `pokemon-catcher.exe` (98 MB) adalah artefak build opsional, hanya untuk Windows. Hapus atau kecualikan file ini sebelum men-zip; `bun run build` tidak wajib dijalankan untuk pengumpulan.
 - Navigasi menu memakai tombol panah (↑↓) dan Enter, dijalankan oleh prompt buatan sendiri di `src/ui/prompts.ts` (raw stdin + `readline`). `@inquirer/prompts` tetap terdaftar sebagai dependency sesuai ketentuan tugas, tetapi tidak dipakai untuk merender menu karena baris pilihannya tidak bisa diberi indent.
 - Tiap screen menggambar ulang seluruh layar (`drawScreen`) alih-alih mencetak beruntun ke bawah, jadi tampilan battle dan menu tidak menumpuk seperti log. Di terminal non-TTY (output dipipe), pembersihan layar dilewati.

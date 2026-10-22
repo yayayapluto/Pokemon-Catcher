@@ -17,7 +17,7 @@ import {
   recordBattleResult,
   recordSpeciesSeen,
 } from '../functions.ts';
-import type { NewPokemon, PokemonView, Result, Species } from '../types.ts';
+import type { NewPokemon, Pokemon, Result, Species } from '../types.ts';
 import { randomInt, type Rng } from '../utils/random.ts';
 import { fail, ok } from '../utils/result.ts';
 import { calcDamage, effectiveness, effectivenessOf, type Effectiveness } from './damage.ts';
@@ -28,43 +28,48 @@ export type Outcome = 'win' | 'lose' | 'caught' | 'ran';
 
 export type BattleEvent =
   | {
-      readonly type: 'attack';
-      readonly side: Side;
-      readonly damage: number;
-      readonly effectiveness: Effectiveness;
-      readonly message: string;
+      type: 'attack';
+      side: Side;
+      damage: number;
+      kind: Effectiveness;
+      message: string;
     }
-  | { readonly type: 'faint'; readonly side: Side; readonly message: string }
-  | { readonly type: 'exp'; readonly amount: number; readonly message: string }
-  | { readonly type: 'level-up'; readonly newLevel: number; readonly message: string }
-  | { readonly type: 'catch-attempt'; readonly success: boolean; readonly message: string }
-  | { readonly type: 'caught'; readonly entry: PokemonView; readonly message: string }
-  | { readonly type: 'run-attempt'; readonly success: boolean; readonly message: string }
-  | { readonly type: 'switch'; readonly message: string }
-  | { readonly type: 'party-wiped'; readonly message: string };
+  | { type: 'faint'; side: Side; message: string }
+  | { type: 'exp'; amount: number; message: string }
+  | { type: 'level-up'; newLevel: number; message: string }
+  | { type: 'catch-attempt'; success: boolean; message: string }
+  | { type: 'caught'; entry: Pokemon; message: string }
+  | { type: 'run-attempt'; success: boolean; message: string }
+  | { type: 'switch'; message: string }
+  | { type: 'party-wiped'; message: string };
 
 export interface BattleState {
-  readonly activeId: number;
-  readonly wild: NewPokemon;
-  readonly captureRate: number;
+  activeId: number;
+  wild: NewPokemon;
+  captureRate: number;
 }
 
 export interface BattleStep {
-  readonly state: BattleState;
-  readonly events: readonly BattleEvent[];
-  readonly outcome: Outcome | null;
+  state: BattleState;
+  events: BattleEvent[];
+  outcome: Outcome | null;
 }
 
-function activePokemon(state: BattleState): PokemonView | undefined {
+function activePokemon(state: BattleState): Pokemon | undefined {
   return getById(state.activeId);
 }
 
-function aliveParty(): readonly PokemonView[] {
+function aliveParty(): Pokemon[] {
   return getParty().filter((entry) => entry.hp > 0);
 }
 
 function withWildHp(state: BattleState, hp: number): BattleState {
   return { ...state, wild: { ...state.wild, hp: Math.max(0, hp) } };
+}
+
+// Wild Pokémon belum punya id/inParty; keduanya tidak dipakai rumus damage.
+export function asCombatant(wild: NewPokemon): Pokemon {
+  return { ...wild, id: 0, inParty: false };
 }
 
 function partyWiped(): boolean {
@@ -84,16 +89,14 @@ function attackMessage(
 function wildTurn(state: BattleState, events: BattleEvent[], rng: Rng): BattleState {
   const active = activePokemon(state);
   if (!active || active.hp === 0 || state.wild.hp === 0) return state;
-  const wildCombatant = { ...state.wild, maxHp: state.wild.maxHp };
-  const multiplier = effectiveness(wildCombatant.types, active.types);
-  const kind = effectivenessOf(multiplier);
-  const damage = calcDamage(wildCombatant, active, rng);
+  const kind = effectivenessOf(effectiveness(state.wild.types, active.types));
+  const damage = calcDamage(asCombatant(state.wild), active, rng);
   applyDamage(active.id, damage);
   events.push({
     type: 'attack',
     side: 'wild',
     damage,
-    effectiveness: kind,
+    kind,
     message: attackMessage(`${state.wild.name} liar`, active.name, damage, kind),
   });
   const refreshed = getById(active.id);
@@ -183,7 +186,7 @@ export function playerAttack(state: BattleState, rng: Rng = Math.random): Battle
   const active = activePokemon(state);
   if (!active) return { state, events, outcome: 'lose' };
 
-  const wildCombatant = state.wild;
+  const wildCombatant = asCombatant(state.wild);
   const playerFirst = active.speed >= wildCombatant.speed ? rng() >= 0.5 : rng() < 0.5;
 
   const playerStrikes = (): BattleState => {
@@ -194,7 +197,7 @@ export function playerAttack(state: BattleState, rng: Rng = Math.random): Battle
       type: 'attack',
       side: 'player',
       damage,
-      effectiveness: kind,
+      kind,
       message: attackMessage(active.name, wildCombatant.name, damage, kind),
     });
     return withWildHp(state, wildCombatant.hp - damage);

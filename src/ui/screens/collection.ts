@@ -1,7 +1,8 @@
 import chalk from 'chalk';
-import { POKEMON_TYPES, SORT_KEYS } from '../../constants.ts';
+import { POKEMON_TYPES } from '../../constants.ts';
 import { filterByType, getAll, searchByName, sortBy } from '../../functions.ts';
-import type { PokemonType, PokemonView, SortKey, SortOrder } from '../../types.ts';
+import type { SortKey, SortOrder } from '../../functions/query.ts';
+import type { PokemonType, Pokemon } from '../../types.ts';
 import { assertNever } from '../../utils/assert.ts';
 import { drawScreen } from '../frame.ts';
 import { askText, pause, selectMenu } from '../prompts.ts';
@@ -9,7 +10,7 @@ import { formatPokemonLine, title } from '../theme.ts';
 
 type CollectionAction = 'sort' | 'search' | 'filter' | 'all' | 'back';
 
-function renderEntries(titleText: string, entries: readonly PokemonView[]): string[] {
+function renderEntries(titleText: string, entries: Pokemon[]): string[] {
   const lines: string[] = [title(titleText), ''];
   if (entries.length === 0) {
     lines.push(chalk.gray('  Tidak ada Pokémon yang cocok.'));
@@ -21,9 +22,10 @@ function renderEntries(titleText: string, entries: readonly PokemonView[]): stri
 
 async function doSort(): Promise<void> {
   drawScreen([title('Urutkan koleksi')]);
+  const keys: SortKey[] = ['level', 'name', 'hp', 'attack', 'defense', 'speed'];
   const key = await selectMenu<SortKey>(
     'Urutkan berdasarkan:',
-    SORT_KEYS.map((value) => ({ value, name: value })),
+    keys.map((value) => ({ value, name: value })),
   );
   drawScreen([title(`Urutkan: ${key}`)]);
   const order = await selectMenu<SortOrder>('Arah:', [

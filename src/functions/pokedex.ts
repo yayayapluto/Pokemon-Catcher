@@ -1,21 +1,21 @@
 import { MAX_SPECIES_ID } from '../constants.ts';
 import { pokemons, speciesCatalog, trainer } from '../data.ts';
 import type { PokemonType, Result, SeenSpecies } from '../types.ts';
-import { fail, ok } from '../utils/result.ts';
+import { fail, okNull } from '../utils/result.ts';
 
 export interface PokedexEntry {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
-  readonly seen: boolean;
-  readonly caught: boolean;
-  readonly count: number;
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
+  seen: boolean;
+  caught: boolean;
+  count: number;
 }
 
 export interface PokedexProgress {
-  readonly seen: number;
-  readonly caught: number;
-  readonly total: number;
+  seen: number;
+  caught: number;
+  total: number;
 }
 
 export function recordSpeciesSeen(species: SeenSpecies): Result<null> {
@@ -23,10 +23,10 @@ export function recordSpeciesSeen(species: SeenSpecies): Result<null> {
     return fail('Id spesies tidak valid.');
   }
   if (trainer.seenSpecies.some((entry) => entry.speciesId === species.speciesId)) {
-    return ok('Spesies sudah tercatat di Pokédex.');
+    return okNull('Spesies sudah tercatat di Pokédex.');
   }
-  trainer.seenSpecies.push({ ...species });
-  return ok('Spesies tercatat di Pokédex.');
+  trainer.seenSpecies.push({ ...species, types: [...species.types] });
+  return okNull('Spesies tercatat di Pokédex.');
 }
 
 export function getPokedex(): PokedexEntry[] {
@@ -48,6 +48,7 @@ export function getPokedex(): PokedexEntry[] {
       };
     });
 }
+
 export function getPokedexProgress(): PokedexProgress {
   const seenIds = new Set(trainer.seenSpecies.map((entry) => entry.speciesId));
   const caughtIds = new Set(pokemons.map((entry) => entry.speciesId));

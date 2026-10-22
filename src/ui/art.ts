@@ -2,7 +2,7 @@ export type ArtMoment = 'win' | 'lose' | 'caught' | 'rare-caught';
 
 export const ART_WIDTH = 44;
 
-export const ART: Record<ArtMoment, readonly string[]> = {
+export const ART: Record<ArtMoment, string[]> = {
   win: [
     '      ▄▄▄▄▄▄▄      ',
     '    ▄█████████▄    ',

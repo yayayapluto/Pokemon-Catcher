@@ -26,7 +26,7 @@ export function endScreenSession(): void {
   process.stdout.write(ANSI_CURSOR_SHOW);
 }
 
-export function drawScreen(lines: readonly string[]): void {
+export function drawScreen(lines: string[]): void {
   if (process.stdout.isTTY) process.stdout.write(ANSI_CLEAR);
   process.stdout.write(`${lines.join('\n')}\n`);
 }

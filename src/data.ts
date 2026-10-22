@@ -22,7 +22,7 @@ const INITIAL_TRAINER: Trainer = {
   seenSpecies: [],
 };
 
-export const fallbackSpecies = [
+export const fallbackSpecies: Species[] = [
   {
     speciesId: 1,
     name: 'bulbasaur',
@@ -79,9 +79,9 @@ export const fallbackSpecies = [
     baseStats: { hp: 55, attack: 55, defense: 50, speed: 55 },
     captureRate: 45,
   },
-] as const satisfies readonly Species[];
+];
 
-export function mergeSpecies(entries: readonly Species[]): void {
+export function mergeSpecies(entries: Species[]): void {
   for (const entry of entries) {
     speciesCatalog.set(entry.speciesId, entry);
   }
