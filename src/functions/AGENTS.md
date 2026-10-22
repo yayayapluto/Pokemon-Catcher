@@ -8,7 +8,7 @@ Konteks untuk semua file di `src/functions/` dan `src/functions.ts`. Tipe ada di
 - Tidak ada `console.*`, `chalk`, atau `@inquirer/prompts`.
 - Validasi semua argumen di sini, jangan percaya UI. Id harus `Number.isInteger`. Jumlah (EXP, damage) harus bilangan bulat dan bukan `NaN`.
 - Function yang **mengubah** data mengembalikan `Result<T>` (lihat `src/types.ts`). `message` berisi teks netral bahasa Indonesia untuk ditampilkan UI. Kegagalan wajar tidak melempar error, kembalikan `fail(message)`.
-- Function yang **hanya membaca** mengembalikan data langsung dengan tipe read-only (`PokemonView`, `readonly PokemonView[]`). Tidak boleh memutasi `pokemons`.
+- Function yang **hanya membaca** mengembalikan data langsung dengan tipe read-only (`Pokemon`, `Pokemon[]`). Tidak boleh memutasi `pokemons`.
 - `functions.ts` hanya berisi `export * from './functions/collection.ts'` dan seterusnya untuk lima file (collection, party, update, query, stats). `store.ts` **tidak** di-export.
 - Mutasi `pokemons` dan `trainer` hanya in-place. Jangan reassign.
 
@@ -23,20 +23,20 @@ Helper bersama supaya tidak ada circular import antar sibling:
 
 - `buildPokemon(species: Species, level: number): NewPokemon`: murni, tidak menyentuh array. `level` dipaksa bilangan bulat dan di-clamp ke `MIN_LEVEL..MAX_LEVEL`. Mengembalikan objek tanpa `id` dan `inParty`, dengan `nickname: null`, `exp: 0`, `hp = maxHp`. Stat di-scale: `scaleStat(base) = Math.floor(base * (1 + level / STAT_SCALE_DIVISOR))`, berlaku untuk hp (jadi `maxHp`), attack, defense, speed.
 - `catchPokemon(pokemon: NewPokemon): Result<Pokemon>` **(Create)**: beri `id` dari `trainer.nextId++`, set `inParty = countParty() < MAX_PARTY_SIZE`, push ke `pokemons`, `trainer.totalCaught++`. `data` = entry baru, `message` menyebut apakah masuk party atau PC box.
-- `getAll(): readonly PokemonView[]` **(Read)**: array baru `[...pokemons]`.
-- `getById(id: number): PokemonView | undefined` **(Read)**.
-- `releasePokemon(id: number): Result<PokemonView>` **(Delete)**: hapus dengan `splice`. Gagal jika id tidak ada, atau jika Pokémon itu adalah satu-satunya anggota party yang tersisa. `data` = salinan dangkal entry yang dilepas.
+- `getAll(): Pokemon[]` **(Read)**: array baru `[...pokemons]`.
+- `getById(id: number): Pokemon | undefined` **(Read)**.
+- `releasePokemon(id: number): Result<Pokemon>` **(Delete)**: hapus dengan `splice`. Gagal jika id tidak ada, atau jika Pokémon itu adalah satu-satunya anggota party yang tersisa. `data` = salinan dangkal entry yang dilepas.
 
 ## functions/party.ts
 
-- `getParty(): readonly PokemonView[]` **(Read)**: filter `inParty === true`.
-- `getBox(): readonly PokemonView[]` **(Read)**: filter `inParty === false`.
-- `moveToParty(id: number): Result<PokemonView>` **(Update)**: gagal jika party sudah `MAX_PARTY_SIZE`, id tidak ada, atau sudah di party.
-- `moveToBox(id: number): Result<PokemonView>` **(Update)**: gagal jika id tidak ada, sudah di box, atau ini anggota party terakhir.
+- `getParty(): Pokemon[]` **(Read)**: filter `inParty === true`.
+- `getBox(): Pokemon[]` **(Read)**: filter `inParty === false`.
+- `moveToParty(id: number): Result<Pokemon>` **(Update)**: gagal jika party sudah `MAX_PARTY_SIZE`, id tidak ada, atau sudah di party.
+- `moveToBox(id: number): Result<Pokemon>` **(Update)**: gagal jika id tidak ada, sudah di box, atau ini anggota party terakhir.
 
 ## functions/update.ts
 
-- `setNickname(id: number, nickname: string): Result<PokemonView>` **(Update)**: trim. String kosong mengembalikan nickname ke `null`. Lebih dari `MAX_NICKNAME_LENGTH` karakter berarti gagal.
+- `setNickname(id: number, nickname: string): Result<Pokemon>` **(Update)**: trim. String kosong mengembalikan nickname ke `null`. Lebih dari `MAX_NICKNAME_LENGTH` karakter berarti gagal.
 - `gainExp(id: number, amount: number): Result<{ levelsGained: number; newLevel: number }>` **(Update)**: `amount` harus bilangan bulat lebih dari 0. Tambah `exp`. Kebutuhan EXP level L adalah `L * EXP_PER_LEVEL`. Selama `exp >= L * EXP_PER_LEVEL` dan level < `MAX_LEVEL`: kurangi exp, level naik 1, dan `maxHp`, `attack`, `defense`, `speed` masing-masing naik `Math.max(1, Math.round(nilai * LEVEL_UP_STAT_GROWTH))`. `hp` bertambah sebesar kenaikan `maxHp`. Pada level `MAX_LEVEL`, exp tidak bertambah dan hasilnya tetap `ok` dengan `levelsGained: 0`.
 - `applyDamage(id: number, amount: number): Result<{ hp: number; fainted: boolean }>` **(Update)**: `amount` bilangan bulat minimal 0. Kurangi `hp`, minimum 0.
 - `healAll(): Result<{ healed: number }>` **(Update)**: `hp = maxHp` untuk semua Pokémon (party dan box). `healed` adalah jumlah entry yang HP-nya berubah.
@@ -45,9 +45,9 @@ Helper bersama supaya tidak ada circular import antar sibling:
 
 Tidak boleh memutasi `pokemons`. Semua mengembalikan array baru.
 
-- `searchByName(keyword: string): readonly PokemonView[]` **(Read)**: trim, cocok sebagian, case-insensitive, terhadap `name` atau `nickname`. Keyword kosong mengembalikan `[]`.
-- `filterByType(type: PokemonType): readonly PokemonView[]` **(Read)**: yang `types` mengandung type tersebut.
-- `sortBy(key: SortKey, order: SortOrder = 'asc'): readonly PokemonView[]` **(Read)**: salin dulu baru urutkan. `name` memakai `localeCompare`. Key tidak valid saat runtime (misalnya dari UI) mengembalikan `getAll()` apa adanya.
+- `searchByName(keyword: string): Pokemon[]` **(Read)**: trim, cocok sebagian, case-insensitive, terhadap `name` atau `nickname`. Keyword kosong mengembalikan `[]`.
+- `filterByType(type: PokemonType): Pokemon[]` **(Read)**: yang `types` mengandung type tersebut.
+- `sortBy(key: SortKey, order: SortOrder = 'asc'): Pokemon[]` **(Read)**: salin dulu baru urutkan. `name` memakai `localeCompare`. Key tidak valid saat runtime (misalnya dari UI) mengembalikan `getAll()` apa adanya.
 
 ## functions/stats.ts
 
@@ -56,16 +56,16 @@ Tidak boleh memutasi `pokemons`. Semua mengembalikan array baru.
 
 ```ts
 export interface TrainerStats {
-  readonly name: string;
-  readonly totalCaught: number;
-  readonly currentOwned: number;
-  readonly partySize: number;
-  readonly boxSize: number;
-  readonly wins: number;
-  readonly losses: number;
-  readonly winRate: number;
-  readonly mostCommonType: PokemonType | null;
-  readonly highestLevel: PokemonView | null;
+  name: string;
+  totalCaught: number;
+  currentOwned: number;
+  partySize: number;
+  boxSize: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  mostCommonType: PokemonType | null;
+  highestLevel: Pokemon | null;
 }
 ```
 
@@ -78,18 +78,18 @@ export interface TrainerStats {
 
 ```ts
 export interface PokedexEntry {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
-  readonly seen: boolean;
-  readonly caught: boolean;
-  readonly count: number;
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
+  seen: boolean;
+  caught: boolean;
+  count: number;
 }
 
 export interface PokedexProgress {
-  readonly seen: number;
-  readonly caught: number;
-  readonly total: number;
+  seen: number;
+  caught: number;
+  total: number;
 }
 ```
 

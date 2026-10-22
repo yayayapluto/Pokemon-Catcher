@@ -7,13 +7,14 @@ Konteks untuk `types.ts`, `constants.ts`, `data.ts`, `main.ts`, dan `utils/`. At
 Tidak mengimpor apa pun. Semua angka dan daftar nilai game ada di sini.
 
 ```ts
-export const POKEMON_TYPES = [
+import type { PokemonType } from './types.ts';
+
+// Urutan ini = urutan tampil di menu filter.
+export const POKEMON_TYPES: PokemonType[] = [
   'normal', 'fire', 'water', 'electric', 'grass', 'ice',
   'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug',
   'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy',
-] as const;
-
-export const SORT_KEYS = ['level', 'name', 'hp', 'attack', 'defense', 'speed'] as const;
+];
 
 export const MAX_PARTY_SIZE = 6;
 export const MIN_LEVEL = 1;
@@ -43,34 +44,36 @@ export const TYPE_EFFECTIVE_SYMBOLS = { immune: '×0', weak: '×½', neutral: ''
 
 Tambah konstanta lain (batas peluang tangkap dan kabur, faktor EXP) di file ini, bukan di tengah function.
 
-`TYPE_CHART` adalah tabel efektivitas type resmi Pokémon (18×18), ditulis sebagai `TYPE_CHART_ROWS` dengan `as const satisfies` supaya kompiler memastikan setiap type punya baris. Hanya matchup yang **bukan** 1× yang ditulis; type yang tidak ada di baris berarti 1×. Barisnya dipakai `effectiveness` di `battle/damage.ts`. Angka 0, 0.5, dan 2 tidak ditulis langsung melainkan lewat konstanta lokal `CHART_IMMUNE` / `CHART_NOT_VERY` / `CHART_SUPER` supaya maksudnya terbaca.
+`TYPE_CHART` adalah tabel efektivitas type resmi Pokémon (18×18), ditulis sebagai `TYPE_CHART_ROWS: Record<PokemonType, Partial<Record<PokemonType, number>>>` supaya kompiler memastikan setiap type punya baris. Hanya matchup yang **bukan** 1× yang ditulis; type yang tidak ada di baris berarti 1×. Barisnya dipakai `effectiveness` di `battle/damage.ts`. Angka 0, 0.5, dan 2 tidak ditulis langsung melainkan lewat konstanta lokal `CHART_IMMUNE` / `CHART_NOT_VERY` / `CHART_SUPER` supaya maksudnya terbaca.
 
-`TYPE_EFFECTIVE_LABELS` dipakai engine untuk pesan serangan; `TYPE_EFFECTIVE_SYMBOLS` dan `TYPE_EFFECTIVE_LABELS` dipakai `ui/theme.ts` untuk indikator. `PokemonTypeName` adalah alias lokal `(typeof POKEMON_TYPES)[number]` karena `constants.ts` tidak boleh import `types.ts`.
+`TYPE_EFFECTIVE_LABELS` dipakai engine untuk pesan serangan; `TYPE_EFFECTIVE_SYMBOLS` dan `TYPE_EFFECTIVE_LABELS` dipakai `ui/theme.ts` untuk indikator. `constants.ts` boleh `import type` dari `types.ts` untuk mengetik `POKEMON_TYPES`, `TYPE_COLORS`, dan `TYPE_CHART_ROWS`; arah import sebaliknya dilarang.
 
 ## types.ts
 
-Semua tipe domain ada di sini. Hanya boleh `import type` dari `constants.ts`.
+Semua tipe domain ada di sini. `types.ts` tidak mengimpor apa pun (tanpa import melingkar dengan `constants.ts`).
 
 ```ts
-import type { POKEMON_TYPES, SORT_KEYS } from './constants.ts';
+export type PokemonType =
+  | 'normal' | 'fire' | 'water' | 'electric' | 'grass' | 'ice'
+  | 'fighting' | 'poison' | 'ground' | 'flying' | 'psychic' | 'bug'
+  | 'rock' | 'ghost' | 'dragon' | 'dark' | 'steel' | 'fairy';
 
-export type PokemonType = (typeof POKEMON_TYPES)[number];
-export type SortKey = (typeof SORT_KEYS)[number];
+export type SortKey = 'level' | 'name' | 'hp' | 'attack' | 'defense' | 'speed';
 export type SortOrder = 'asc' | 'desc';
 
 export interface BaseStats {
-  readonly hp: number;
-  readonly attack: number;
-  readonly defense: number;
-  readonly speed: number;
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
 }
 
 export interface Species {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
-  readonly baseStats: BaseStats;
-  readonly captureRate: number;
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
+  baseStats: BaseStats;
+  captureRate: number;
 }
 
 export interface Pokemon {
@@ -80,7 +83,7 @@ export interface Pokemon {
   nickname: string | null;
   level: number;
   exp: number;
-  types: readonly PokemonType[];
+  types: PokemonType[];
   hp: number;
   maxHp: number;
   attack: number;
@@ -89,7 +92,6 @@ export interface Pokemon {
   inParty: boolean;
 }
 
-export type PokemonView = Readonly<Pokemon>;
 export type NewPokemon = Omit<Pokemon, 'id' | 'inParty'>;
 
 export interface Trainer {
@@ -102,23 +104,18 @@ export interface Trainer {
 }
 
 export interface SeenSpecies {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
 }
 
-export interface Failure {
-  readonly ok: false;
-  readonly message: string;
-}
-
-export type Result<T = null> =
-  | { readonly ok: true; readonly message: string; readonly data: T }
-  | Failure;
+export type Result<T> =
+  | { ok: true; message: string; data: T }
+  | { ok: false; message: string };
 ```
 
 Catatan:
-- `Pokemon` punya tepat 13 field. `PokemonView` adalah versi read-only yang dikembalikan function Read.
+- `Pokemon` punya tepat 13 field dan bersifat mutable. Function Read mengembalikan salinan baru.
 - `types` berisi 1 atau 2 type. Nilai dari luar yang bukan salah satu dari 18 type resmi harus disaring di `services/`.
 - Tipe khusus battle (`BattleState`, `BattleEvent`, `Outcome`) ada di `battle/engine.ts`.
 - `SeenSpecies` menyimpan bentuk ringkas spesies yang ditemui di pertarungan liar. Menyimpan `name` dan `types` (bukan hanya id) karena spesies liar bisa punya id di luar `speciesCatalog` (misalnya saat data PokeAPI gagal dimuat), jadi Pokédex tidak bisa menampilkan namanya kalau yang disimpan hanya id. Lihat `functions/pokedex.ts`.
@@ -149,11 +146,11 @@ export const pokemons: Pokemon[] = [];
 
 export const trainer: Trainer = { name: 'Trainer', nextId: 1, totalCaught: 0, wins: 0, losses: 0, seenSpecies: [] };
 
-export const fallbackSpecies: readonly Species[] = [ /* tabel di bawah */ ];
+export const fallbackSpecies: Species[] = [ /* tabel di bawah */ ];
 
 export const speciesCatalog = new Map<number, Species>();
 
-export function mergeSpecies(entries: readonly Species[]): void { /* set tiap entri ke speciesCatalog */ }
+export function mergeSpecies(entries: Species[]): void { /* set tiap entri ke speciesCatalog */ }
 
 export function resetData(): void { /* kosongkan pokemons in-place, kembalikan trainer, kosongkan speciesCatalog lalu isi ulang dari fallbackSpecies */ }
 ```
@@ -162,7 +159,7 @@ export function resetData(): void { /* kosongkan pokemons in-place, kembalikan t
 - `resetData()` hanya untuk test. Isinya `pokemons.length = 0`, `Object.assign(trainer, nilaiAwal)`, `trainer.seenSpecies = []` (array-nya diganti, bukan dimutasi, supaya referensi lama tidak bocor antar test), `speciesCatalog.clear()`, lalu `mergeSpecies(fallbackSpecies)`. Di akhir modul ada pemanggilan `mergeSpecies(fallbackSpecies)` supaya katalog selalu terisi saat modul dimuat. Nilai awal disimpan di konstanta yang tidak diekspor.
 - `speciesCatalog`: katalog spesies yang dipakai Pokédex dan pencarian encounter. Diisi dari `fallbackSpecies` saat modul dimuat, lalu diperkaya oleh prefetch PokeAPI lewat `mergeSpecies`. Ini satu-satunya tempat daftar spesies yang diketahui hidup; `functions/` **tidak boleh** import `services/` (aturan §6), jadi penulisan ke katalog selalu lewat `mergeSpecies` di file ini.
 - `MAX_SPECIES_ID` = 1025 (seluruh National Dex) adalah penyebut tetap Pokédex dan batas atas id encounter liar.
-- `fallbackSpecies` ditulis persis seperti tabel ini, dengan `types` bertipe `PokemonType[]` (gunakan `satisfies readonly Species[]`):
+- `fallbackSpecies` ditulis persis seperti tabel ini, dengan `types` bertipe `PokemonType[]` (tipe `Species[]`, tanpa `satisfies`):
 
 | speciesId | name | types | hp | attack | defense | speed | captureRate |
 |---|---|---|---|---|---|---|---|
@@ -193,9 +190,9 @@ Semua function murni dan kecil. Tidak ada output terminal.
 - `random.ts`
   - `export type Rng = () => number;` (mengembalikan nilai di `[0, 1)`).
   - `randomInt(min: number, max: number, rng: Rng = Math.random): number`: bilangan bulat inklusif di `[min, max]`.
-  - `randomChoice<T>(items: readonly T[], rng: Rng = Math.random): T`: melempar `RangeError` jika `items` kosong (bug programmer).
+  - `randomChoice<T>(items: T[], rng: Rng = Math.random): T`: melempar `RangeError` jika `items` kosong (bug programmer).
   - `chance(probability: number, rng: Rng = Math.random): boolean`: `rng() < probability`.
 - `math.ts`: `clamp(value: number, min: number, max: number): number`.
-- `result.ts`: `ok(message: string): Result<null>`, `ok<T>(message: string, data: T): Result<T>` (overload), dan `fail(message: string): Failure`.
+- `result.ts`: `ok<T>(message: string, data: T): Result<T>`, `okNull(message: string): Result<null>`, dan `fail(message: string): Result<never>` (memungkinkan narrowing tanpa overload).
 - `async.ts`: `withTimeout<T>(promise: Promise<T>, ms: number): Promise<T>`. Menolak dengan `Error` bernama `TimeoutError` jika lewat batas. Timer wajib dibersihkan di `finally`.
 - `assert.ts`: `assertNever(value: never): never`, melempar `Error` untuk pengecekan exhaustive.

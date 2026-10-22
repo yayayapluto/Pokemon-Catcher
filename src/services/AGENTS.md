@@ -17,25 +17,25 @@ export interface SpeciesSource {
 }
 
 export interface RandomSpeciesOptions {
-  readonly source?: SpeciesSource;
-  readonly rng?: Rng;
-  readonly timeoutMs?: number;
+  source?: SpeciesSource;
+  rng?: Rng;
+  timeoutMs?: number;
 }
 
 export function createPokeApiSource(): SpeciesSource;
 export function mapToSpecies(pokemon: ApiPokemon, species: ApiSpecies): Species;
 export function isPokemonType(value: string): value is PokemonType;
 export interface PrefetchOptions {
-  readonly source?: SpeciesSource;
-  readonly total?: number;
-  readonly concurrency?: number;
-  readonly onLoaded?: (species: Species) => void;
+  source?: SpeciesSource;
+  total?: number;
+  concurrency?: number;
+  onLoaded?: (species: Species) => void;
 }
 
 export interface PrefetchProgress {
-  readonly loaded: number;
-  readonly total: number;
-  readonly done: boolean;
+  loaded: number;
+  total: number;
+  done: boolean;
 }
 
 export async function getRandomSpecies(options?: RandomSpeciesOptions): Promise<Species>;

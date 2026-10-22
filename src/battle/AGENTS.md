@@ -14,13 +14,13 @@ Konteks untuk `engine.ts`, `damage.ts`, `catch.ts`. Tipe dasar di `src/types.ts`
 ## damage.ts
 
 ```ts
-type Combatant = Pick<Pokemon, 'level' | 'attack' | 'defense'> & { readonly types: readonly PokemonType[] };
-
 export type Effectiveness = 'immune' | 'weak' | 'neutral' | 'strong';
 
-export function effectiveness(attackerTypes: readonly PokemonType[], defenderTypes: readonly PokemonType[]): number;
+export function effectiveness(attackerTypes: PokemonType[], defenderTypes: PokemonType[]): number;
 export function effectivenessOf(multiplier: number): Effectiveness;
-export function calcDamage(attacker: Combatant, defender: Combatant, rng: Rng = Math.random): number;
+export function calcDamage(attacker: Pokemon, defender: Pokemon, rng: Rng = Math.random): number;
+/** Adaptor: Pokémon liar belum punya id dan bukan anggota party. */
+export function asCombatant(wild: NewPokemon): Pokemon;
 ```
 
 `effectiveness` mengalikan `TYPE_CHART[attackerType][defenderType]` untuk setiap pasangan type
@@ -58,26 +58,26 @@ export type Side = 'player' | 'wild';
 export type Outcome = 'win' | 'lose' | 'caught' | 'ran';
 
 export type BattleEvent =
-  | { readonly type: 'attack'; readonly side: Side; readonly damage: number; readonly effectiveness: Effectiveness; readonly message: string }
-  | { readonly type: 'faint'; readonly side: Side; readonly message: string }
-  | { readonly type: 'exp'; readonly amount: number; readonly message: string }
-  | { readonly type: 'level-up'; readonly newLevel: number; readonly message: string }
-  | { readonly type: 'catch-attempt'; readonly success: boolean; readonly message: string }
-  | { readonly type: 'caught'; readonly entry: PokemonView; readonly message: string }
-  | { readonly type: 'run-attempt'; readonly success: boolean; readonly message: string }
-  | { readonly type: 'switch'; readonly message: string }
-  | { readonly type: 'party-wiped'; readonly message: string };
+  | { type: 'attack'; side: Side; damage: number; kind: Effectiveness; message: string }
+  | { type: 'faint'; side: Side; message: string }
+  | { type: 'exp'; amount: number; message: string }
+  | { type: 'level-up'; newLevel: number; message: string }
+  | { type: 'catch-attempt'; success: boolean; message: string }
+  | { type: 'caught'; entry: Pokemon; message: string }
+  | { type: 'run-attempt'; success: boolean; message: string }
+  | { type: 'switch'; message: string }
+  | { type: 'party-wiped'; message: string };
 
 export interface BattleState {
-  readonly activeId: number;
-  readonly wild: NewPokemon;
-  readonly captureRate: number;
+  activeId: number;
+  wild: NewPokemon;
+  captureRate: number;
 }
 
 export interface BattleStep {
-  readonly state: BattleState;
-  readonly events: readonly BattleEvent[];
-  readonly outcome: Outcome | null;
+  state: BattleState;
+  events: BattleEvent[];
+  outcome: Outcome | null;
 }
 ```
 
