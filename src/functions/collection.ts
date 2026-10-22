@@ -1,4 +1,3 @@
-import { pokemons, trainer } from '../data.ts';
 import {
   MAX_LEVEL,
   MAX_PARTY_SIZE,
@@ -6,7 +5,8 @@ import {
   STARTING_LEVEL,
   STAT_SCALE_DIVISOR,
 } from '../constants.ts';
-import type { NewPokemon, Pokemon, PokemonView, Result, Species } from '../types.ts';
+import { pokemons, trainer } from '../data.ts';
+import type { NewPokemon, Pokemon, Result, Species } from '../types.ts';
 import { clamp } from '../utils/math.ts';
 import { fail, ok } from '../utils/result.ts';
 import { countParty, findById } from './store.ts';
@@ -46,22 +46,20 @@ export function catchPokemon(pokemon: NewPokemon): Result<Pokemon> {
   return ok(`${entry.name} ditangkap dan masuk ${place}!`, entry);
 }
 
-export function getAll(): readonly PokemonView[] {
+export function getAll(): Pokemon[] {
   return [...pokemons];
 }
 
-export function getById(id: number): PokemonView | undefined {
+export function getById(id: number): Pokemon | undefined {
   return findById(id);
 }
 
-export function releasePokemon(id: number): Result<PokemonView> {
+export function releasePokemon(id: number): Result<Pokemon> {
   const entry = findById(id);
   if (!entry) return fail(`Tidak ada Pokémon dengan id ${id}.`);
   if (entry.inParty && countParty() <= 1) {
     return fail('Tidak bisa melepas satu-satunya Pokémon di party.');
   }
-  const index = pokemons.indexOf(entry);
-  const [removed] = pokemons.splice(index, 1);
-  const snapshot = removed ?? entry;
-  return ok(`${snapshot.name} dilepas kembali ke alam liar.`, { ...snapshot });
+  pokemons.splice(pokemons.indexOf(entry), 1);
+  return ok(`${entry.name} dilepas kembali ke alam liar.`, entry);
 }

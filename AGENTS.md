@@ -201,11 +201,11 @@ Wajib supaya tidak ada circular import dan logika bisa dites tanpa UI. Aturan in
 Semua poin ini wajib dipatuhi di seluruh kode. Yang bertanda `[otomatis]` dicek oleh tooling, sisanya dicek manual saat checklist bagian 10.
 
 Type safety:
-1. `[otomatis]` Zero `any`, zero `@ts-ignore` / `@ts-expect-error`, zero non-null assertion (`!`). Type assertion (`as`) hanya kalau tidak ada cara lain, dan harus didahului pengecekan runtime. `as const` dan `satisfies` boleh dan dianjurkan.
+1. `[otomatis]` Zero `any`, zero `@ts-ignore` / `@ts-expect-error`, zero non-null assertion (`!`). Type assertion (`as`) hanya kalau tidak ada cara lain, dan harus didahului pengecekan runtime. Tipe domain dideklarasikan sebagai interface/union biasa, bukan mesin `as const` + `typeof X[number]`.
 2. Data dari luar (respons PokeAPI, input keyboard) dianggap tidak tepercaya. Validasi dan persempit tipenya di batas sistem: `services/` untuk API, `functions/` untuk semua argumen, jangan percaya UI.
 3. Himpunan nilai tertentu dimodelkan sebagai union literal yang diturunkan dari konstanta (`as const`), bukan string bebas. Satu sumber kebenaran, contohnya `POKEMON_TYPES`.
 4. Hasil yang punya beberapa bentuk memakai discriminated union (`Result`, `BattleEvent`). `switch` atas union wajib exhaustive dengan `assertNever`.
-5. Data yang tidak boleh diubah ditandai `readonly`. Function Read mengembalikan tipe read-only supaya UI tidak bisa melewati validasi.
+5. Objek domain bersifat mutable; Function Read mengembalikan salinan baru sehingga UI tetap tidak bisa memutasi state `pokemons`.
 
 Desain:
 6. Pisahkan logika murni dari I/O. Efek samping (terminal, jaringan, mutasi array) hanya di tempat yang ditentukan di bagian 6.

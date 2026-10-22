@@ -12,10 +12,10 @@ import {
   TYPE_EFFECTIVE_LABELS,
 } from '../constants.ts';
 import { getPrefetchProgress } from '../services/pokeapi.ts';
-import type { PokemonType, PokemonView } from '../types.ts';
+import type { PokemonType, Pokemon } from '../types.ts';
 import { ART, ART_WIDTH, type ArtMoment } from './art.ts';
 
-const typeColors = {
+const typeColors: Record<PokemonType, ChalkInstance> = {
   normal: chalk.hex(TYPE_COLORS.normal),
   fire: chalk.hex(TYPE_COLORS.fire),
   water: chalk.hex(TYPE_COLORS.water),
@@ -34,9 +34,9 @@ const typeColors = {
   dark: chalk.hex(TYPE_COLORS.dark),
   steel: chalk.hex(TYPE_COLORS.steel),
   fairy: chalk.hex(TYPE_COLORS.fairy),
-} satisfies Record<PokemonType, ChalkInstance>;
+};
 
-const typeGlyphs = {
+const typeGlyphs: Record<PokemonType, string> = {
   normal: '*',
   fire: '^',
   water: '~',
@@ -55,7 +55,7 @@ const typeGlyphs = {
   dark: ':',
   steel: '+',
   fairy: '=',
-} satisfies Record<PokemonType, string>;
+};
 
 export function typeGlyph(type: PokemonType): string {
   return typeColors[type](typeGlyphs[type]);
@@ -65,29 +65,29 @@ export function typeBadge(type: PokemonType): string {
   return typeColors[type](`[${type}]`);
 }
 
-export function typeGlyphStrip(types: readonly PokemonType[]): string {
+export function typeGlyphStrip(types: PokemonType[]): string {
   if (types.length === 0) return chalk.gray('-');
   return types.map(typeGlyph).join(' ');
 }
 
-export function section(heading: string, body: readonly string[]): string[] {
+export function section(heading: string, body: string[]): string[] {
   const lines: string[] = heading === '' ? [] : [title(heading), ''];
   for (const line of body) lines.push(line);
   return lines;
 }
 
-export function panel(heading: string, body: readonly string[]): string[] {
+export function panel(heading: string, body: string[]): string[] {
   return section(
     heading,
     body.map((line) => `  ${line}`),
   );
 }
 
-export function frames(lines: readonly string[]): string[][] {
+export function frames(lines: string[]): string[][] {
   return lines.map((_, index) => lines.slice(0, index + 1));
 }
 
-export function displayName(p: PokemonView): string {
+export function displayName(p: Pokemon): string {
   return p.nickname ?? p.name;
 }
 
@@ -121,7 +121,7 @@ export function hpStatus(hp: number, maxHp: number): string {
   return `${Math.max(0, hp)}/${Math.max(0, maxHp)}`.padEnd(HP_BAR_STATUS_WIDTH);
 }
 
-export function formatPokemonLine(p: PokemonView): string {
+export function formatPokemonLine(p: Pokemon): string {
   const types = p.types.map(typeBadge).join(' ');
   const bar = hpBar(p.hp, p.maxHp, HP_BAR_BRACKET_WIDTH);
   const level = chalk.bold(`Lv${p.level}`);
@@ -139,8 +139,7 @@ export function dim(text: string): string {
 }
 
 export function spinnerFrame(tick: number): string {
-  const index = ((tick % SPINNER_FRAMES.length) + SPINNER_FRAMES.length) % SPINNER_FRAMES.length;
-  return SPINNER_FRAMES[index] ?? SPINNER_FRAMES[0];
+  return SPINNER_FRAMES[tick % SPINNER_FRAMES.length] ?? '';
 }
 
 export function prefetchStatusLine(tick: number): string | null {
@@ -159,8 +158,8 @@ export function effectivenessBadge(kind: Effectiveness): string {
 
 export function matchupLine(
   label: string,
-  attackerTypes: readonly PokemonType[],
-  defenderTypes: readonly PokemonType[],
+  attackerTypes: PokemonType[],
+  defenderTypes: PokemonType[],
 ): string {
   const kind = effectivenessOf(effectiveness(attackerTypes, defenderTypes));
   const text = TYPE_EFFECTIVE_LABELS[kind];

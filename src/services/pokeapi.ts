@@ -5,7 +5,6 @@ import {
   MAX_SPECIES_ID,
   POKEMON_TYPES,
   PREFETCH_CONCURRENCY,
-  STAT_NAMES,
 } from '../constants.ts';
 import { fallbackSpecies, mergeSpecies, speciesCatalog } from '../data.ts';
 import type { BaseStats, PokemonType, Species } from '../types.ts';
@@ -17,44 +16,38 @@ export interface SpeciesSource {
 }
 
 export interface RandomSpeciesOptions {
-  readonly source?: SpeciesSource;
-  readonly rng?: Rng;
-  readonly timeoutMs?: number;
+  source?: SpeciesSource;
+  rng?: Rng;
+  timeoutMs?: number;
 }
 
 export interface PrefetchOptions {
-  readonly source?: SpeciesSource;
-  readonly total?: number;
-  readonly concurrency?: number;
-  readonly onLoaded?: (species: Species) => void;
-}
-
-type StatName = (typeof STAT_NAMES)[number];
-
-function isStatName(value: string): value is StatName {
-  return (STAT_NAMES as readonly string[]).includes(value);
+  source?: SpeciesSource;
+  total?: number;
+  concurrency?: number;
+  onLoaded?: (species: Species) => void;
 }
 
 export function isPokemonType(value: string): value is PokemonType {
-  return (POKEMON_TYPES as readonly string[]).includes(value);
+  return POKEMON_TYPES.includes(value as PokemonType);
 }
 
 function readBaseStats(stats: ApiPokemon['stats']): BaseStats {
-  const found: Record<StatName, number> = { hp: 0, attack: 0, defense: 0, speed: 0 };
+  const found: Record<string, number> = {};
   for (const entry of stats) {
-    const name = entry.stat.name;
-    if (!isStatName(name)) continue;
     if (!Number.isFinite(entry.base_stat)) {
-      throw new Error(`Stat ${name} tidak valid.`);
+      throw new Error(`Stat ${entry.stat.name} tidak valid.`);
     }
-    found[name] = entry.base_stat;
+    found[entry.stat.name] = entry.base_stat;
   }
-  for (const name of STAT_NAMES) {
-    if (found[name] <= 0) {
-      throw new Error(`Stat ${name} tidak ditemukan.`);
-    }
+  const hp = found.hp;
+  const attack = found.attack;
+  const defense = found.defense;
+  const speed = found.speed;
+  if (!hp || !attack || !defense || !speed) {
+    throw new Error('Stat Pokémon tidak lengkap.');
   }
-  return { hp: found.hp, attack: found.attack, defense: found.defense, speed: found.speed };
+  return { hp, attack, defense, speed };
 }
 
 export function mapToSpecies(pokemon: ApiPokemon, species: ApiSpecies): Species {
@@ -110,9 +103,9 @@ export async function getRandomSpecies(options: RandomSpeciesOptions = {}): Prom
 }
 
 export interface PrefetchProgress {
-  readonly loaded: number;
-  readonly total: number;
-  readonly done: boolean;
+  loaded: number;
+  total: number;
+  done: boolean;
 }
 
 let progress: PrefetchProgress = { loaded: 0, total: MAX_SPECIES_ID, done: false };

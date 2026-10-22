@@ -2,9 +2,9 @@ import chalk from 'chalk';
 import { SPINNER_INTERVAL_MS } from '../constants.ts';
 
 export interface MenuChoice<T extends string> {
-  readonly value: T;
-  readonly name: string;
-  readonly description?: string;
+  value: T;
+  name: string;
+  description?: string;
 }
 
 const KEY_UP = '\u001b[A';
@@ -31,7 +31,7 @@ export function isExitPromptError(error: unknown): boolean {
   return error instanceof Error && error.name === 'ExitPromptError';
 }
 
-function writeLines(lines: readonly string[]): void {
+function writeLines(lines: string[]): void {
   process.stdout.write(`${lines.join('\n')}\n`);
 }
 
@@ -72,7 +72,7 @@ function readKey(): Promise<string> {
 
 export function renderMenu(
   message: string,
-  choices: readonly MenuChoice<string>[],
+  choices: MenuChoice<string>[],
   index: number,
 ): string[] {
   const lines: string[] = [chalk.bold(message)];
@@ -91,18 +91,18 @@ export function renderMenu(
 }
 
 export interface SelectMenuOptions {
-  readonly status?: (tick: number) => string | null;
-  readonly statusIntervalMs?: number;
+  status?: (tick: number) => string | null;
+  statusIntervalMs?: number;
 }
 
 export async function selectMenu<T extends string>(
   message: string,
-  choices: readonly MenuChoice<T>[],
+  choices: MenuChoice<T>[],
   options: SelectMenuOptions = {},
 ): Promise<T> {
   if (choices.length === 0) throw new Error('selectMenu butuh minimal satu pilihan.');
   const state: KeyState = { index: 0, done: false };
-  const menuChoices = choices as readonly MenuChoice<string>[];
+  const menuChoices = choices as MenuChoice<string>[];
   let tick = 0;
   let statusLine = options.status?.(tick) ?? null;
 

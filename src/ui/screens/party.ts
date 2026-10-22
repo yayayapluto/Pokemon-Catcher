@@ -8,7 +8,7 @@ import {
   releasePokemon,
   setNickname,
 } from '../../functions.ts';
-import type { PokemonView, Result } from '../../types.ts';
+import type { Pokemon, Result } from '../../types.ts';
 import { assertNever } from '../../utils/assert.ts';
 import { drawScreen } from '../frame.ts';
 import { askConfirm, askText, pause, selectMenu } from '../prompts.ts';
@@ -29,7 +29,7 @@ function renderList(): string[] {
   return lines;
 }
 
-function renderDetail(entry: PokemonView): string[] {
+function renderDetail(entry: Pokemon): string[] {
   return [
     title(displayName(entry)),
     '',
@@ -48,26 +48,26 @@ function resultLine<TPayload>(result: Result<TPayload>): string {
   return result.ok ? chalk.green(result.message) : chalk.red(result.message);
 }
 
-async function handleDetail(entry: PokemonView): Promise<void> {
+async function handleDetail(entry: Pokemon): Promise<void> {
   const fresh = getById(entry.id) ?? entry;
   drawScreen(renderDetail(fresh));
   await pause();
 }
 
-async function handleNickname(entry: PokemonView): Promise<void> {
+async function handleNickname(entry: Pokemon): Promise<void> {
   drawScreen([...renderList(), '', title('Ganti nickname')]);
   const value = await askText('Nama panggilan baru (kosongkan untuk reset):', entry.nickname ?? '');
   drawScreen([...renderList(), '', resultLine(setNickname(entry.id, value))]);
   await pause();
 }
 
-async function handleMove(entry: PokemonView): Promise<void> {
+async function handleMove(entry: Pokemon): Promise<void> {
   const result = entry.inParty ? moveToBox(entry.id) : moveToParty(entry.id);
   drawScreen([...renderList(), '', resultLine(result)]);
   await pause();
 }
 
-async function handleRelease(entry: PokemonView): Promise<void> {
+async function handleRelease(entry: Pokemon): Promise<void> {
   drawScreen([...renderList(), '', title('Lepas Pokémon')]);
   if (!(await askConfirm(`Lepas ${displayName(entry)} secara permanen?`))) return;
   const result = releasePokemon(entry.id);
@@ -75,7 +75,7 @@ async function handleRelease(entry: PokemonView): Promise<void> {
   await pause();
 }
 
-async function handleAction(entry: PokemonView, action: PartyAction): Promise<void> {
+async function handleAction(entry: Pokemon, action: PartyAction): Promise<void> {
   switch (action) {
     case 'detail':
       await handleDetail(entry);
@@ -96,7 +96,7 @@ async function handleAction(entry: PokemonView, action: PartyAction): Promise<vo
   }
 }
 
-async function manageEntry(entry: PokemonView): Promise<void> {
+async function manageEntry(entry: Pokemon): Promise<void> {
   drawScreen(renderList());
   const action = await selectMenu<PartyAction>(`Aksi untuk ${displayName(entry)}:`, [
     { value: 'detail', name: 'Detail' },

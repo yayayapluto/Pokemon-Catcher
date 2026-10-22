@@ -1,22 +1,37 @@
-import type { POKEMON_TYPES, SORT_KEYS } from './constants.ts';
-
-export type PokemonType = (typeof POKEMON_TYPES)[number];
-export type SortKey = (typeof SORT_KEYS)[number];
-export type SortOrder = 'asc' | 'desc';
+// 18 tipe resmi Pokémon.
+export type PokemonType =
+  | 'normal'
+  | 'fire'
+  | 'water'
+  | 'electric'
+  | 'grass'
+  | 'ice'
+  | 'fighting'
+  | 'poison'
+  | 'ground'
+  | 'flying'
+  | 'psychic'
+  | 'bug'
+  | 'rock'
+  | 'ghost'
+  | 'dragon'
+  | 'dark'
+  | 'steel'
+  | 'fairy';
 
 export interface BaseStats {
-  readonly hp: number;
-  readonly attack: number;
-  readonly defense: number;
-  readonly speed: number;
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
 }
 
 export interface Species {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
-  readonly baseStats: BaseStats;
-  readonly captureRate: number;
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
+  baseStats: BaseStats;
+  captureRate: number;
 }
 
 export interface Pokemon {
@@ -26,7 +41,7 @@ export interface Pokemon {
   nickname: string | null;
   level: number;
   exp: number;
-  types: readonly PokemonType[];
+  types: PokemonType[];
   hp: number;
   maxHp: number;
   attack: number;
@@ -35,7 +50,6 @@ export interface Pokemon {
   inParty: boolean;
 }
 
-export type PokemonView = Readonly<Pokemon>;
 export type NewPokemon = Omit<Pokemon, 'id' | 'inParty'>;
 
 export interface Trainer {
@@ -48,16 +62,11 @@ export interface Trainer {
 }
 
 export interface SeenSpecies {
-  readonly speciesId: number;
-  readonly name: string;
-  readonly types: readonly PokemonType[];
-}
-
-export interface Failure {
-  readonly ok: false;
-  readonly message: string;
+  speciesId: number;
+  name: string;
+  types: PokemonType[];
 }
 
 export type Result<T = null> =
-  | { readonly ok: true; readonly message: string; readonly data: T }
-  | Failure;
+  | { ok: true; message: string; data: T }
+  | { ok: false; message: string };

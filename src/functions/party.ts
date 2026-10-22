@@ -1,18 +1,18 @@
 import { MAX_PARTY_SIZE } from '../constants.ts';
-import type { PokemonView, Result } from '../types.ts';
-import { fail, ok } from '../utils/result.ts';
 import { pokemons } from '../data.ts';
+import type { Pokemon, Result } from '../types.ts';
+import { fail, ok } from '../utils/result.ts';
 import { countParty, findById, isLastPartyMember } from './store.ts';
 
-export function getParty(): readonly PokemonView[] {
+export function getParty(): Pokemon[] {
   return pokemons.filter((entry) => entry.inParty);
 }
 
-export function getBox(): readonly PokemonView[] {
+export function getBox(): Pokemon[] {
   return pokemons.filter((entry) => !entry.inParty);
 }
 
-export function moveToParty(id: number): Result<PokemonView> {
+export function moveToParty(id: number): Result<Pokemon> {
   const entry = findById(id);
   if (!entry) return fail(`Tidak ada Pokémon dengan id ${id}.`);
   if (entry.inParty) return fail(`${entry.name} sudah ada di party.`);
@@ -21,7 +21,7 @@ export function moveToParty(id: number): Result<PokemonView> {
   return ok(`${entry.name} dipindahkan ke party.`, entry);
 }
 
-export function moveToBox(id: number): Result<PokemonView> {
+export function moveToBox(id: number): Result<Pokemon> {
   const entry = findById(id);
   if (!entry) return fail(`Tidak ada Pokémon dengan id ${id}.`);
   if (!entry.inParty) return fail(`${entry.name} sudah ada di PC box.`);

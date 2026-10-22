@@ -5,11 +5,11 @@ import {
   MAX_NICKNAME_LENGTH,
 } from '../constants.ts';
 import { pokemons } from '../data.ts';
-import type { PokemonView, Result } from '../types.ts';
+import type { Pokemon, Result } from '../types.ts';
 import { fail, ok } from '../utils/result.ts';
 import { findById } from './store.ts';
 
-export function setNickname(id: number, nickname: string): Result<PokemonView> {
+export function setNickname(id: number, nickname: string): Result<Pokemon> {
   const entry = findById(id);
   if (!entry) return fail(`Tidak ada Pokémon dengan id ${id}.`);
   const trimmed = nickname.trim();

@@ -1,30 +1,30 @@
 import { trainer, pokemons } from '../data.ts';
-import type { PokemonType, PokemonView, Result } from '../types.ts';
-import { ok } from '../utils/result.ts';
+import type { Pokemon, PokemonType, Result } from '../types.ts';
+import { okNull } from '../utils/result.ts';
 
 export interface TrainerStats {
-  readonly name: string;
-  readonly totalCaught: number;
-  readonly currentOwned: number;
-  readonly partySize: number;
-  readonly boxSize: number;
-  readonly wins: number;
-  readonly losses: number;
-  readonly winRate: number;
-  readonly mostCommonType: PokemonType | null;
-  readonly highestLevel: PokemonView | null;
+  name: string;
+  totalCaught: number;
+  currentOwned: number;
+  partySize: number;
+  boxSize: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  mostCommonType: PokemonType | null;
+  highestLevel: Pokemon | null;
 }
 
 export function recordBattleResult(won: boolean): Result<null> {
   if (won) {
     trainer.wins += 1;
-    return ok('Kemenangan tercatat.');
+    return okNull('Kemenangan tercatat.');
   }
   trainer.losses += 1;
-  return ok('Kekalahan tercatat.');
+  return okNull('Kekalahan tercatat.');
 }
 
-function findMostCommonType(entries: readonly PokemonView[]): PokemonType | null {
+function findMostCommonType(entries: Pokemon[]): PokemonType | null {
   const counts = new Map<PokemonType, number>();
   for (const entry of entries) {
     for (const type of entry.types) {
@@ -42,8 +42,8 @@ function findMostCommonType(entries: readonly PokemonView[]): PokemonType | null
   return best;
 }
 
-function findHighestLevel(entries: readonly PokemonView[]): PokemonView | null {
-  let best: PokemonView | null = null;
+function findHighestLevel(entries: Pokemon[]): Pokemon | null {
+  let best: Pokemon | null = null;
   for (const entry of entries) {
     if (best === null || entry.level > best.level) best = entry;
   }

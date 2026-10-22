@@ -7,9 +7,6 @@ import {
 import type { Pokemon, PokemonType } from '../types.ts';
 import type { Rng } from '../utils/random.ts';
 
-type Combatant = Pick<Pokemon, 'level' | 'attack' | 'defense'>;
-type TypedCombatant = Combatant & { readonly types: readonly PokemonType[] };
-
 export type Effectiveness = 'immune' | 'weak' | 'neutral' | 'strong';
 
 export function effectivenessOf(multiplier: number): Effectiveness {
@@ -19,10 +16,7 @@ export function effectivenessOf(multiplier: number): Effectiveness {
   return 'neutral';
 }
 
-export function effectiveness(
-  attackerTypes: readonly PokemonType[],
-  defenderTypes: readonly PokemonType[],
-): number {
+export function effectiveness(attackerTypes: PokemonType[], defenderTypes: PokemonType[]): number {
   let multiplier = 1;
   for (const attackType of attackerTypes) {
     const row = TYPE_CHART[attackType];
@@ -33,11 +27,7 @@ export function effectiveness(
   return multiplier;
 }
 
-export function calcDamage(
-  attacker: TypedCombatant,
-  defender: TypedCombatant,
-  rng: Rng = Math.random,
-): number {
+export function calcDamage(attacker: Pokemon, defender: Pokemon, rng: Rng = Math.random): number {
   const multiplier = effectiveness(attacker.types, defender.types);
   if (multiplier === 0) return 0;
   const defense = Math.max(1, defender.defense);

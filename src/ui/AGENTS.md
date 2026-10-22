@@ -17,19 +17,19 @@ Implementasi sendiri di atas `node:readline` dan raw mode `stdin`, bukan memangg
 
 ```ts
 export interface MenuChoice<T extends string> {
-  readonly value: T;
-  readonly name: string;
-  readonly description?: string;
+  value: T;
+  name: string;
+  description?: string;
 }
 
 export interface SelectMenuOptions {
-  readonly status?: (tick: number) => string | null;
-  readonly statusIntervalMs?: number;
+  status?: (tick: number) => string | null;
+  statusIntervalMs?: number;
 }
 
 export function selectMenu<T extends string>(
   message: string,
-  choices: readonly MenuChoice<T>[],
+  choices: MenuChoice<T>[],
   options?: SelectMenuOptions,
 ): Promise<T>;
 export function askText(message: string, defaultValue?: string): Promise<string>;
@@ -46,16 +46,16 @@ export function isExitPromptError(error: unknown): boolean;
 
 ## ui/theme.ts
 
-- `typeColors`: `Record<PokemonType, ChalkInstance>` dengan `chalk.hex(...)` untuk 18 type resmi. Gunakan `satisfies` supaya kompiler memastikan semua type terisi.
+- `typeColors`: `Record<PokemonType, ChalkInstance>` dengan `chalk.hex(...)` untuk 18 type resmi. Tipe `Record<PokemonType, ChalkInstance>` memastikan semua type terisi.
 - `typeBadge(type: PokemonType): string`: nama type berwarna.
-- `typeGlyph(type: PokemonType): string` dan `typeGlyphStrip(types: readonly PokemonType[]): string`: glyph satu karakter per type, diwarnai lewat `typeColors`. Glyph dibuat ASCII supaya aman di berbagai terminal dan code page. Daftar type kosong menghasilkan `-` abu-abu.
-- `section(heading: string, body: readonly string[]): string[]`: judul opsional, lalu **baris kosong**, lalu isi. `panel` adalah `section` dengan isi di-indentasi dua spasi. Heading kosong tidak menambah baris kosong. Tidak memakai karakter border; pemisah visual hanya judul, baris kosong, dan indentasi.
+- `typeGlyph(type: PokemonType): string` dan `typeGlyphStrip(types: PokemonType[]): string`: glyph satu karakter per type, diwarnai lewat `typeColors`. Glyph dibuat ASCII supaya aman di berbagai terminal dan code page. Daftar type kosong menghasilkan `-` abu-abu.
+- `section(heading: string, body: string[]): string[]`: judul opsional, lalu **baris kosong**, lalu isi. `panel` adalah `section` dengan isi di-indentasi dua spasi. Heading kosong tidak menambah baris kosong. Tidak memakai karakter border; pemisah visual hanya judul, baris kosong, dan indentasi.
 - Jarak antar bagian layar adalah keputusan `theme.ts`, bukan tiap screen: setiap screen yang menampilkan beberapa section memakai `section()`/`panel()` atau menulis pola yang sama (judul, `''`, isi) supaya tidak berdesakan. Header singkat yang langsung diikuti prompt `@inquirer` tidak perlu baris kosong.
-- `frames(lines: readonly string[]): string[][]`: potongan bertambah satu baris, dipakai untuk menampilkan event satu per satu.
+- `frames(lines: string[]): string[][]`: potongan bertambah satu baris, dipakai untuk menampilkan event satu per satu.
 - `hpBarDrain(from, to, maxHp, step, width = 20): string`: bar HP pada nilai interpolasi antar `from` dan `to` selama `HP_DRAIN_STEPS` langkah. `step` 1 sama dengan `hpBar(from, ...)`, `step` terakhir sama dengan `hpBar(to, ...)`.
-- `displayName(p: PokemonView): string`: `p.nickname ?? p.name`.
+- `displayName(p: Pokemon): string`: `p.nickname ?? p.name`.
 - `hpBar(hp: number, maxHp: number, width = 20): string`: bar hijau, kuning, atau merah sesuai persentase. Tahan `maxHp` 0 dan nilai di luar rentang.
-- `formatPokemonLine(p: PokemonView): string`: satu baris ringkas berisi nama, level, type, bar HP.
+- `formatPokemonLine(p: Pokemon): string`: satu baris ringkas berisi nama, level, type, bar HP.
 - `title(text: string): string`: judul section.
 - Warna dan ambang bar (misalnya batas kuning dan merah) dijadikan konstanta bernama.
 - Durasi animasi dan jumlah langkah drain ada di `constants.ts` (`ANIMATION_ENABLED`, `ANIMATION_EVENT_DELAY_MS`, `ANIMATION_HP_TICK_MS`, `HP_DRAIN_STEPS`). `ANIMATION_ENABLED` adalah satu-satunya saklar: `false` membuat semua jeda hilang tanpa mengubah hasil permainan. `delay()` di `utils/async.ts` adalah satu-satunya cara menunggu.
@@ -66,7 +66,7 @@ export function isExitPromptError(error: unknown): boolean;
 
 ## ui/art.ts
 
-Data art saja, tanpa logika: `ART: Record<ArtMoment, readonly string[]>` dan `ART_WIDTH`. Empat momen: `win` (hijau), `lose` (merah), `caught` (kuning), `rare-caught` (magenta). Ditulis sebagai array literal, bukan template string multi-baris, supaya tidak ada trailing space tak sengaja dan Biome tidak menyisipkan CRLF ke dalam gambar. Batas keras: setiap baris `<= ART_WIDTH` (44) kolom, dijaga test di `theme.test.ts`. Glyph blok/box-drawing (`█ ░ ▄ ▀ ─ │`), emoji hanya sebagai aksen (`✦ ✧`) dan tidak pernah dipad berdasarkan lebar visual.
+Data art saja, tanpa logika: `ART: Record<ArtMoment, string[]>` dan `ART_WIDTH`. Empat momen: `win` (hijau), `lose` (merah), `caught` (kuning), `rare-caught` (magenta). Ditulis sebagai array literal, bukan template string multi-baris, supaya tidak ada trailing space tak sengaja dan Biome tidak menyisipkan CRLF ke dalam gambar. Batas keras: setiap baris `<= ART_WIDTH` (44) kolom, dijaga test di `theme.test.ts`. Glyph blok/box-drawing (`█ ░ ▄ ▀ ─ │`), emoji hanya sebagai aksen (`✦ ✧`) dan tidak pernah dipad berdasarkan lebar visual.
 
 ## Screens
 
